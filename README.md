@@ -5,4 +5,10 @@
 npm install
 npm run build-renderer
 npm start
-```x
+```
+
+## 本地格式化所有代码
+```
+<!-- 安装prettier插件 -->
+npx prettier --write .
+```

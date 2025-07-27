@@ -1,10 +1,10 @@
 {
   "name": "itools",
   "version": "1.0.0",
-  "main": "main.js",
+  "main": "main.cjs",
   "scripts": {
     "start": "electron .",
-    "build-renderer": "webpack --config webpack.config.js",
+    "build-renderer": "webpack --config webpack.config.cjs",
     "prepare": "husky install",
     "pack": "electron-builder --dir",
     "dist": "electron-builder"
