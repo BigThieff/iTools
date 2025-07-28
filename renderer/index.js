@@ -1,6 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import SubtitleTool from './components/SubtitleTool.jsx';
+import MainLayout from './components/MainLayout.jsx';
+import 'antd/dist/reset.css';
 
 const root = createRoot(document.getElementById('root'));
-root.render(<SubtitleTool />);
+root.render(<MainLayout />);
