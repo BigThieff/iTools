@@ -38,6 +38,18 @@ ipcMain.handle('dialog:openFile', async () => {
   return await dialog.showOpenDialog({ properties: ['openFile'] });
 });
 
+const MODEL_DIR = path.join(__dirname, 'models', 'ggml');
+
+ipcMain.handle('subtitle:listModels', async () => {
+  try {
+    const files = fs.readdirSync(MODEL_DIR)
+      .filter(f => f.endsWith('.bin'));
+    return files;
+  } catch (e) {
+    return [];
+  }
+});
+
 function grantBinExecPermission() {
   const binDir = path.join(__dirname, 'bin');
   if (!fs.existsSync(binDir)) return;

@@ -29,7 +29,7 @@ async function extractSubtitle(videoPath, options = {}) {
 
     const ffmpeg = getResourcePath('bin', 'ffmpeg');
     const WHISPER_BIN = getResourcePath('bin', 'whisper-cli');
-    const WHISPER_MODEL = getResourcePath('models', modelName);
+    const WHISPER_MODEL = getResourcePath('models','ggml', modelName);
 
     // 检查可执行文件和模型
     if (!fs.existsSync(ffmpeg)) throw new Error(`找不到 ffmpeg: ${ffmpeg}`);

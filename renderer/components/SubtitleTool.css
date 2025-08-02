@@ -2,9 +2,10 @@
   max-width: 500px;
   margin: 48px auto;
   border-radius: 20px;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+  box-shadow: 0 4px 24px rgba(22,119,255,0.08);
   background: #fff;
   border: none;
+  padding: 32px 24px;
 }
 
 .subtitle-tool-path {
@@ -29,34 +30,27 @@
   font-size: 14px;
 }
 
-.ant-btn-primary,
-.ant-btn {
-  background: linear-gradient(90deg, #1677ff 0%, #6ba4ff 100%);
+.ant-btn, .ant-btn-primary {
+  background: linear-gradient(90deg, #1677ff 0%, #6ba4ff 100%) !important;
   border-radius: 8px;
-  border: none;
+  border: none !important;
   font-weight: 600;
-  box-shadow: 0 2px 8px rgba(22,119,255,0.08);
-  color: #fff;
-  transition: background 0.2s, color 0.2s;
-  height: 40px;
-  /* 保证高度一致 */
+  box-shadow: 0 2px 8px rgba(22,119,255,0.08) !important;
+  color: #fff !important;
+  transition: background 0.2s, color 0.2s !important;
+  height: 40px !important;
 }
 
 .ant-btn-primary:hover,
 .ant-btn:hover,
 .ant-btn-primary:focus,
-.ant-btn:focus {
-  background: linear-gradient(90deg, #409eff 0%, #1677ff 100%);
-  color: #fff;
-  box-shadow: 0 2px 8px rgba(22,119,255,0.08); /* 保持不变 */
-  border: none;
-}
-
+.ant-btn:focus,
+.ant-btn-primary:active,
 .ant-btn:active {
-  background: linear-gradient(90deg, #1677ff 0%, #409eff 100%);
-  color: #fff;
-  box-shadow: 0 2px 8px rgba(22,119,255,0.08); /* 保持不变 */
-  border: none;
+  background: linear-gradient(90deg, #409eff 0%, #1677ff 100%) !important;
+  color: #fff !important;
+  border: none !important;
+  box-shadow: 0 2px 8px rgba(22,119,255,0.08) !important;
 }
 
 .ant-btn[disabled], .ant-btn-primary[disabled] {
@@ -66,10 +60,10 @@
   box-shadow: none !important;
   cursor: not-allowed !important;
   transition: none !important;
-  height: 40px;
+  height: 40px !important;
 }
 
 .ant-btn:focus-visible {
-  outline: none;
-  box-shadow: 0 2px 8px rgba(22,119,255,0.08);
+  outline: none !important;
+  box-shadow: 0 2px 8px rgba(22,119,255,0.08) !important;
 }

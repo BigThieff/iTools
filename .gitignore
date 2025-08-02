@@ -4,4 +4,4 @@ renderer/dist/
 .DS_Store
 .env
 .vscode/
-models/*.bin
+models/ggml/*.bin

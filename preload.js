@@ -13,4 +13,5 @@ contextBridge.exposeInMainWorld('api', {
     if (canceled) return null;
     return filePaths[0];
   },
+  listModels: () => ipcRenderer.invoke('subtitle:listModels'),
 });
