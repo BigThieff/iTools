@@ -7,13 +7,28 @@
     "build-renderer": "webpack --config webpack.config.cjs",
     "prepare": "husky install",
     "pack": "electron-builder --dir",
-    "dist": "electron-builder"
+    "build": "npm run build-renderer",
+    "dist": "electron-builder",
+    "clean-release": "rm -rf release/mac-arm64 release/*.blockmap"
   },
   "build": {
     "appId": "com.example.itools",
     "mac": {
       "target": "dmg",
+      "category": "public.app-category.utilities",
       "icon": "assets/app-icon.icns"
+    },
+    "files": [
+      "dist/",
+      "main.cjs",
+      "preload.js",
+      "renderer/",
+      "tools/",
+      "models/",
+      "bin/"
+    ],
+    "directories": {
+      "output": "release"
     }
   },
   "lint-staged": {

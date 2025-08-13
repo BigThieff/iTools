@@ -1,69 +1,59 @@
 .subtitle-tool-card {
-  max-width: 500px;
-  margin: 48px auto;
-  border-radius: 20px;
-  box-shadow: 0 4px 24px rgba(22,119,255,0.08);
+  max-width: 80%; /* 宽度占屏幕的 80% */
+  margin: 8px auto; /* 上下外边距 */
+  border-radius: 16px; /* 圆角 */
+  box-shadow: 0 4px 16px rgba(22, 119, 255, 0.08); /* 阴影 */
   background: #fff;
   border: none;
-  padding: 32px 24px;
+  padding: 16px 12px; /* 内部空白 */
+  max-height: calc(100vh - 96px); /* 高度自适应，减去顶部和底部的空白 */
+  overflow-y: auto; /* 启用垂直滚动条 */
+}
+
+.subtitle-tool-row {
+  display: flex;
+  align-items: center;
+  gap: 12px; /* 保持按钮和下拉框的间距 */
+  justify-content: space-between;
+  margin-bottom: 16px; /* 减少表单项之间的垂直间距 */
+}
+
+.subtitle-tool-buttons {
+  margin-top: 12px; /* 减少按钮与上方内容的间距 */
+  display: flex;
+  flex-direction: column;
+  gap: 8px; /* 减少按钮之间的间距 */
 }
 
 .subtitle-tool-path {
   display: flex;
   align-items: center;
-  background: #f5f6fa;
-  border-radius: 10px;
-  padding: 10px 14px;
-  margin-bottom: 8px;
-  font-size: 15px;
-  color: #232946;
+  justify-content: center; /* 居中显示路径 */
+  margin-top: 8px; /* 与按钮保持适当间距 */
+  font-size: 14px;
+  color: #333;
   word-break: break-all;
-  box-shadow: 0 1px 4px rgba(22,119,255,0.04);
 }
 
 .subtitle-tool-path-text {
-  flex: 1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-family: 'Menlo', 'Monaco', 'Consolas', monospace;
   font-size: 14px;
+  color: #333;
 }
 
-.ant-btn, .ant-btn-primary {
-  background: linear-gradient(90deg, #1677ff 0%, #6ba4ff 100%) !important;
-  border-radius: 8px;
-  border: none !important;
-  font-weight: 600;
-  box-shadow: 0 2px 8px rgba(22,119,255,0.08) !important;
-  color: #fff !important;
-  transition: background 0.2s, color 0.2s !important;
-  height: 40px !important;
-}
+@media (max-width: 768px) {
+  .subtitle-tool-card {
+    max-width: 95%; /* 小屏幕时占用更大宽度 */
+    padding: 12px 8px; /* 减少内边距 */
+  }
 
-.ant-btn-primary:hover,
-.ant-btn:hover,
-.ant-btn-primary:focus,
-.ant-btn:focus,
-.ant-btn-primary:active,
-.ant-btn:active {
-  background: linear-gradient(90deg, #409eff 0%, #1677ff 100%) !important;
-  color: #fff !important;
-  border: none !important;
-  box-shadow: 0 2px 8px rgba(22,119,255,0.08) !important;
-}
+  .subtitle-tool-row {
+    margin-bottom: 12px; /* 减少表单项之间的间距 */
+  }
 
-.ant-btn[disabled], .ant-btn-primary[disabled] {
-  background: #e3e7ee !important;
-  color: #b0b3b8 !important;
-  border: none !important;
-  box-shadow: none !important;
-  cursor: not-allowed !important;
-  transition: none !important;
-  height: 40px !important;
-}
-
-.ant-btn:focus-visible {
-  outline: none !important;
-  box-shadow: 0 2px 8px rgba(22,119,255,0.08) !important;
+  .subtitle-tool-buttons {
+    gap: 6px; /* 减少按钮之间的间距 */
+  }
 }

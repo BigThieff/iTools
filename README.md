@@ -10,7 +10,14 @@ https://huggingface.co/ggerganov/whisper.cpp/tree/main
 npm install
 npm run build-renderer
 npm start
-```s
+```
+
+## 打包命令
+```
+npm run dist
+<!-- 清楚中间文件 -->
+npm run clean-release
+```
 
 ## 本地格式化所有代码
 ```

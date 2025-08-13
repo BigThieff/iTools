@@ -18,19 +18,21 @@
 }
 .main-header {
   background: #fff !important;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-  padding: 0 32px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  padding: 8px 32px; /* 减少上下内边距 */
   display: flex;
   align-items: center;
   border-bottom: 1px solid #e3e7ee;
 }
 .main-content {
-  margin: 32px;
-  padding: 32px;
+  margin: 16px; /* 外部空白 */
+  padding: 16px; /* 内部空白 */
   background: #fff;
-  border-radius: 20px;
-  min-height: 400px;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+  border-radius: 16px; /* 圆角 */
+  min-height: 400px; /* 最小高度 */
+  max-height: calc(100vh - 64px); /* 最大高度，减去顶部和底部的空白 */
+  overflow-y: auto; /* 启用垂直滚动条 */
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08); /* 阴影 */
 }
 .ant-menu-dark {
   background: transparent !important;

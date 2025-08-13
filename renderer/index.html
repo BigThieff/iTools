@@ -11,6 +11,7 @@
         padding: 0;
         background: linear-gradient(120deg, #eaf0fb 0%, #f7f8fa 100%);
         font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+        overflow: hidden; /* 禁止全局滚动条 */
       }
       #root {
         min-height: 100vh;
@@ -18,6 +19,7 @@
         flex-direction: column;
         justify-content: flex-start;
         align-items: stretch;
+        overflow: hidden; /* 禁止根容器滚动条 */
       }
     </style>
   </head>
