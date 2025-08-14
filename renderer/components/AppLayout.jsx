@@ -5,8 +5,8 @@ import {
   CloudDownloadOutlined,
   ToolOutlined,
 } from '@ant-design/icons';
-import SubtitleTool from './SubtitleTool.jsx';
-import './MainLayout.css';
+import SubtitleExtractor from './SubtitleExtractor.jsx';
+import './AppLayout.css';
 
 const { Header, Sider, Content } = Layout;
 const { Title } = Typography;
@@ -16,7 +16,7 @@ const tools = [
     key: 'subtitle',
     icon: <FileTextOutlined />,
     label: '字幕提取',
-    component: <SubtitleTool />,
+    component: <SubtitleExtractor />,
   },
   {
     key: 'downloader',

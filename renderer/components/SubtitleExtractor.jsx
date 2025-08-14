@@ -2,20 +2,20 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   Card,
   Button,
-  Typography,
-  Space,
-  message,
   Select,
-  Divider,
-  Tooltip,
   Radio,
+  Divider,
+  Typography,
+  message,
+  Tooltip,
+  Space,
 } from 'antd';
 import {
   FileOutlined,
   PlayCircleOutlined,
   QuestionCircleOutlined,
 } from '@ant-design/icons';
-import './SubtitleTool.css';
+import './SubtitleExtractor.css';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -45,13 +45,12 @@ export default function SubtitleTool() {
   const [subtitleType, setSubtitleType] = useState('single');
   const [targetLang, setTargetLang] = useState('en');
   const [subtitleOrder, setSubtitleOrder] = useState('main-first');
-  const [isExtracting, setIsExtracting] = useState(false); // 新增状态
-  const contentRef = useRef(null); // 添加 ref
+  const [isExtracting, setIsExtracting] = useState(false);
+  const contentRef = useRef(null);
 
   useEffect(() => {
     window.api.listModels().then((list) => {
       setModels(list);
-      // 优先选择 small 模型，如果不存在则选择第一个模型
       const defaultModel =
         list.find((model) => model.includes('small')) || list[0];
       if (defaultModel) setSelectedModel(defaultModel);
@@ -60,7 +59,7 @@ export default function SubtitleTool() {
 
   useEffect(() => {
     if (subtitleType === 'dual' && contentRef.current) {
-      contentRef.current.scrollTop = contentRef.current.scrollHeight; // 滚动到最下方
+      contentRef.current.scrollTop = contentRef.current.scrollHeight;
     }
   }, [subtitleType]);
 
@@ -73,35 +72,110 @@ export default function SubtitleTool() {
   };
 
   const handleExtract = async () => {
+    console.log('开始提取字幕...');
+
+    // 检查是否已存在相同参数的字幕文件
+    try {
+      const exists = await window.api.checkSubtitleExists(
+        videoPath,
+        selectedModel,
+        language,
+        subtitleType === 'dual' ? targetLang : undefined,
+      );
+
+      console.log('字幕文件是否已存在:', exists); // 添加日志
+
+      if (exists) {
+        // 生成友好的提示信息
+        const modelDisplay = selectedModel
+          .replace(/^ggml-/, '')
+          .replace('.bin', '');
+        const langDisplay =
+          LANGUAGES.find((l) => l.value === language)?.label || language;
+        let tipMessage = `已存在 ${modelDisplay} 模型的 ${langDisplay} 字幕`;
+
+        if (subtitleType === 'dual') {
+          const targetDisplay =
+            LANGUAGES.find((l) => l.value === targetLang)?.label || targetLang;
+          tipMessage += ` + ${targetDisplay} 双语字幕`;
+        }
+
+        // 同时使用多种方式提示用户
+        const fullMessage = tipMessage + '，无需重复提取';
+
+        // 1. 使用 message.info
+        message.info({
+          content: fullMessage,
+          duration: 5, // 延长显示时间
+          style: {
+            marginTop: '20vh',
+            zIndex: 9999, // 确保在最上层
+          },
+        });
+
+        // 2. 同时更新状态显示
+        setStatus(`✅ ${fullMessage}`);
+
+        // 3. 控制台日志
+        console.log('字幕已存在，跳过提取:', fullMessage);
+
+        return;
+      }
+    } catch (checkError) {
+      console.error('检查字幕存在失败:', checkError);
+
+      // 检查失败时也给用户提示
+      message.warning({
+        content: '检查字幕文件失败，将继续尝试提取',
+        duration: 3,
+      });
+      setStatus('⚠️ 检查字幕文件失败，继续提取...');
+    }
+
     setStatus('处理中...');
-    setIsExtracting(true); // 禁用按钮
+    setIsExtracting(true);
+
     try {
       const options = {
         modelName: selectedModel,
         language,
         dual: subtitleType === 'dual',
         targetLang: subtitleType === 'dual' ? targetLang : undefined,
-        subtitleOrder, // 新增参数
+        subtitleOrder,
       };
+
       const srtPath = await window.api.extractSubtitle(videoPath, options);
+      console.log('字幕提取成功:', srtPath);
+
+      // 修改成功提示部分
       if (subtitleType === 'dual') {
-        setStatus(`双语言字幕生成成功：${srtPath}`);
-        message.success('双语言字幕生成成功！');
+        setStatus(`双语字幕生成成功：${srtPath.split('/').pop()}`); // 使用 split 获取文件名
+        message.success({
+          content: '双语字幕生成成功！',
+          duration: 3,
+        });
       } else {
-        setStatus(`字幕生成成功：${srtPath}`);
-        message.success('字幕生成成功！');
+        setStatus(`字幕生成成功：${srtPath.split('/').pop()}`); // 使用 split 获取文件名
+        message.success({
+          content: '字幕生成成功！',
+          duration: 3,
+        });
       }
     } catch (e) {
+      console.error('提取字幕失败:', e.message);
       setStatus(`失败：${e.message}`);
-      message.error('字幕生成失败');
+      message.error({
+        content: '字幕生成失败，请检查视频文件和模型',
+        duration: 5,
+      });
     } finally {
-      setIsExtracting(false); // 恢复按钮
+      setIsExtracting(false);
     }
   };
 
   return (
     <Card
-      className="subtitle-tool-card"
+      className="subtitle-extractor-card"
       title={<Title level={3}>🎬 字幕提取工具</Title>}
       bordered={false}
     >
@@ -109,10 +183,10 @@ export default function SubtitleTool() {
         direction="vertical"
         size="large"
         style={{ width: '100%' }}
-        ref={contentRef} // 绑定 ref
+        ref={contentRef}
       >
         {/* 模型选择 */}
-        <div className="subtitle-tool-row">
+        <div className="subtitle-extractor-row">
           <span>
             选择模型（平衡速度与精度）
             <Tooltip title="选择不同模型可平衡速度与精度">
@@ -136,7 +210,7 @@ export default function SubtitleTool() {
           </Select>
         </div>
         {/* 视频语言 */}
-        <div className="subtitle-tool-row">
+        <div className="subtitle-extractor-row">
           <span>
             视频主要语言
             <Tooltip title="请选择视频中说话的主要语言，影响识别准确率">
@@ -156,7 +230,7 @@ export default function SubtitleTool() {
           </Select>
         </div>
         {/* 字幕类型 */}
-        <div className="subtitle-tool-row">
+        <div className="subtitle-extractor-row">
           <span>
             字幕生成类型
             <Tooltip title="单语言：仅提取视频原始字幕。双语言：会自动翻译生成第二种语言，翻译质量依赖模型，可能不如原文准确。">
@@ -174,7 +248,7 @@ export default function SubtitleTool() {
 
         {/* 第二语言 */}
         {subtitleType === 'dual' && (
-          <div className="subtitle-tool-row">
+          <div className="subtitle-extractor-row">
             <span>
               翻译目标语言
               <Tooltip title="第二语言为机器翻译结果，仅供参考。">
@@ -194,7 +268,7 @@ export default function SubtitleTool() {
 
         {/* 字幕顺序 */}
         {subtitleType === 'dual' && (
-          <div className="subtitle-tool-row">
+          <div className="subtitle-extractor-row">
             <span>
               字幕显示顺序
               <Tooltip title="选择字幕显示顺序：主语言在上或目标语言在上">
@@ -213,20 +287,20 @@ export default function SubtitleTool() {
           </div>
         )}
         <Divider style={{ margin: '8px 0' }} />
-        <div className="subtitle-tool-buttons">
+        <div className="subtitle-extractor-buttons">
           <Button
             type="primary"
             icon={<FileOutlined />}
             onClick={handleSelectFile}
-            disabled={isExtracting} // 禁用按钮
+            disabled={isExtracting}
             block
           >
             选择视频文件
           </Button>
           {videoPath && (
-            <div className="subtitle-tool-path">
-              <FileOutlined className="subtitle-tool-icon" />
-              <span title={videoPath} className="subtitle-tool-path-text">
+            <div className="subtitle-extractor-path">
+              <FileOutlined className="subtitle-extractor-icon" />
+              <span title={videoPath} className="subtitle-extractor-path-text">
                 {videoPath.length > 40
                   ? videoPath.slice(0, 18) + '...' + videoPath.slice(-18)
                   : videoPath}
@@ -237,7 +311,7 @@ export default function SubtitleTool() {
             type="default"
             icon={<PlayCircleOutlined />}
             onClick={handleExtract}
-            disabled={!videoPath || !selectedModel || isExtracting} // 禁用按钮
+            disabled={!videoPath || !selectedModel || isExtracting}
             block
           >
             提取字幕

@@ -1,4 +1,4 @@
-.subtitle-tool-card {
+.subtitle-extractor-card {
   max-width: 80%; /* 宽度占屏幕的 80% */
   margin: 8px auto; /* 上下外边距 */
   border-radius: 16px; /* 圆角 */
@@ -10,7 +10,7 @@
   overflow-y: auto; /* 启用垂直滚动条 */
 }
 
-.subtitle-tool-row {
+.subtitle-extractor-row {
   display: flex;
   align-items: center;
   gap: 12px; /* 保持按钮和下拉框的间距 */
@@ -18,14 +18,14 @@
   margin-bottom: 16px; /* 减少表单项之间的垂直间距 */
 }
 
-.subtitle-tool-buttons {
+.subtitle-extractor-buttons {
   margin-top: 12px; /* 减少按钮与上方内容的间距 */
   display: flex;
   flex-direction: column;
   gap: 8px; /* 减少按钮之间的间距 */
 }
 
-.subtitle-tool-path {
+.subtitle-extractor-path {
   display: flex;
   align-items: center;
   justify-content: center; /* 居中显示路径 */
@@ -35,7 +35,7 @@
   word-break: break-all;
 }
 
-.subtitle-tool-path-text {
+.subtitle-extractor-path-text {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -44,16 +44,16 @@
 }
 
 @media (max-width: 768px) {
-  .subtitle-tool-card {
+  .subtitle-extractor-card {
     max-width: 95%; /* 小屏幕时占用更大宽度 */
     padding: 12px 8px; /* 减少内边距 */
   }
 
-  .subtitle-tool-row {
+  .subtitle-extractor-row {
     margin-bottom: 12px; /* 减少表单项之间的间距 */
   }
 
-  .subtitle-tool-buttons {
+  .subtitle-extractor-buttons {
     gap: 6px; /* 减少按钮之间的间距 */
   }
 }

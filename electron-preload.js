@@ -14,4 +14,13 @@ contextBridge.exposeInMainWorld('api', {
     return filePaths[0];
   },
   listModels: () => ipcRenderer.invoke('subtitle:listModels'),
+  // 添加缺失的 checkSubtitleExists
+  checkSubtitleExists: (videoPath, modelName, language, targetLang) =>
+    ipcRenderer.invoke(
+      'subtitle:checkExists',
+      videoPath,
+      modelName,
+      language,
+      targetLang,
+    ),
 });
