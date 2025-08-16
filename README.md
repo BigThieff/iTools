@@ -240,7 +240,26 @@ npm run dist:linux      # Linux
 ### ❓ 常见问题
 
 <details>
-<summary><strong>🚫 "找不到二进制文件" 错误</strong></summary>
+<summary><strong>� "JavaScript error occurred in the main process" 启动错误</strong></summary>
+
+**错误信息**: 
+```
+Error: ENOTDIR: not a directory, mkdir '/Applications/iTools.app/Contents/Resources/app.asar/logs'
+```
+
+**原因**: 应用试图在只读的 asar 包内创建日志目录
+
+**解决方案**:
+1. **自动解决**: 应用会自动回退到用户数据目录或临时目录创建日志
+2. **手动处理**: 重新下载最新版本，该问题已在 v1.0.1+ 版本中修复
+3. **权限问题**: 确保用户数据目录有写入权限:
+   - macOS: `~/Library/Application Support/iTools/`
+   - Windows: `%APPDATA%/iTools/`
+   - Linux: `~/.config/iTools/`
+</details>
+
+<details>
+<summary><strong>�🚫 "找不到二进制文件" 错误</strong></summary>
 
 **原因**: 缺少 FFmpeg 或 Whisper CLI 二进制文件
 

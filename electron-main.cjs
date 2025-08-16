@@ -6,10 +6,12 @@ const ErrorHandler = require('./utils/error-handler.cjs');
 const { version } = require('./package.json');
 
 const platformManager = new PlatformManager();
-const errorHandler = new ErrorHandler();
+let errorHandler = null; // 延迟初始化
 
 function createWindow() {
-  errorHandler.writeLog('info', '创建主窗口');
+  if (errorHandler) {
+    errorHandler.writeLog('info', '创建主窗口');
+  }
   
   const win = new BrowserWindow({
     width: 900,
@@ -24,7 +26,9 @@ function createWindow() {
   win.loadFile(path.join(__dirname, 'renderer', 'app.html'));
   
   if (process.env.NODE_ENV === 'development') {
-    errorHandler.writeLog('info', '开发模式，打开开发者工具');
+    if (errorHandler) {
+      errorHandler.writeLog('info', '开发模式，打开开发者工具');
+    }
     win.webContents.openDevTools();
   }
   
@@ -32,7 +36,10 @@ function createWindow() {
 }
 
 app.whenReady().then(async () => {
+  // 在应用就绪后初始化 ErrorHandler
+  errorHandler = new ErrorHandler();
   errorHandler.writeLog('info', '应用就绪，开始初始化');
+  
   await initializePlatform();
   createMenu();
   createWindow();
@@ -40,57 +47,91 @@ app.whenReady().then(async () => {
 });
 
 app.on('window-all-closed', () => {
-  errorHandler.writeLog('info', '所有窗口已关闭');
+  if (errorHandler) {
+    errorHandler.writeLog('info', '所有窗口已关闭');
+  }
   if (process.platform !== 'darwin') {
-    errorHandler.writeLog('info', '退出应用');
+    if (errorHandler) {
+      errorHandler.writeLog('info', '退出应用');
+    }
     app.quit();
   }
 });
 
 app.on('activate', () => {
-  errorHandler.writeLog('info', '应用被激活');
+  if (errorHandler) {
+    errorHandler.writeLog('info', '应用被激活');
+  }
   if (BrowserWindow.getAllWindows().length === 0) {
-    errorHandler.writeLog('info', '没有窗口，创建新窗口');
+    if (errorHandler) {
+      errorHandler.writeLog('info', '没有窗口，创建新窗口');
+    }
     createWindow();
   }
 });
 
 //注册所有IPC处理器
 ipcMain.handle('subtitle:extract', async (event, videoPath, options) => {
-  errorHandler.writeLog('info', 'IPC字幕提取请求', { videoPath, options });
+  if (errorHandler) {
+    errorHandler.writeLog('info', 'IPC字幕提取请求', { videoPath, options });
+  }
   try {
     const result = await extractSubtitle(videoPath, options);
-    errorHandler.logSuccess('字幕提取', { videoPath, options });
+    if (errorHandler) {
+      errorHandler.logSuccess('字幕提取', { videoPath, options });
+    }
     return { success: true, result };
   } catch (error) {
-    return errorHandler.handleSubtitleError(error, videoPath, options);
+    if (errorHandler) {
+      return errorHandler.handleSubtitleError(error, videoPath, options);
+    } else {
+      return { success: false, error: error.message };
+    }
   }
 });
 
 ipcMain.handle('subtitle:checkExists', async (event, videoPath, modelName, language, targetLang, subtitleOrder) => {
-  errorHandler.writeLog('info', 'IPC检查字幕存在请求', { videoPath, modelName, language, targetLang, subtitleOrder });
+  if (errorHandler) {
+    errorHandler.writeLog('info', 'IPC检查字幕存在请求', { videoPath, modelName, language, targetLang, subtitleOrder });
+  }
   try {
     const exists = checkSubtitleExists(videoPath, modelName, language, targetLang, subtitleOrder);
-    errorHandler.writeLog('info', 'IPC字幕存在检查结果', { exists, videoPath, modelName, language, targetLang, subtitleOrder });
+    if (errorHandler) {
+      errorHandler.writeLog('info', 'IPC字幕存在检查结果', { exists, videoPath, modelName, language, targetLang, subtitleOrder });
+    }
     return { success: true, exists };
   } catch (error) {
-    return errorHandler.handleIpcError(error, '检查字幕文件', { videoPath, modelName, language, targetLang, subtitleOrder });
+    if (errorHandler) {
+      return errorHandler.handleIpcError(error, '检查字幕文件', { videoPath, modelName, language, targetLang, subtitleOrder });
+    } else {
+      return { success: false, error: error.message };
+    }
   }
 });
 
 ipcMain.handle('subtitle:listModels', async () => {
-  errorHandler.writeLog('info', 'IPC获取模型列表请求');
+  if (errorHandler) {
+    errorHandler.writeLog('info', 'IPC获取模型列表请求');
+  }
   try {
     const models = listModels();
-    errorHandler.writeLog('info', 'IPC模型列表获取成功', { models });
+    if (errorHandler) {
+      errorHandler.writeLog('info', 'IPC模型列表获取成功', { models });
+    }
     return { success: true, models };
   } catch (error) {
-    return errorHandler.handleIpcError(error, '获取模型列表');
+    if (errorHandler) {
+      return errorHandler.handleIpcError(error, '获取模型列表');
+    } else {
+      return { success: false, error: error.message };
+    }
   }
 });
 
 ipcMain.handle('dialog:openFile', async () => {
-  errorHandler.writeLog('info', 'IPC打开文件对话框请求');
+  if (errorHandler) {
+    errorHandler.writeLog('info', 'IPC打开文件对话框请求');
+  }
   try {
     const result = await dialog.showOpenDialog({
       properties: ['openFile'],
@@ -99,51 +140,81 @@ ipcMain.handle('dialog:openFile', async () => {
         { name: '所有文件', extensions: ['*'] }
       ]
     });
-    errorHandler.writeLog('info', 'IPC文件对话框结果', { result });
+    if (errorHandler) {
+      errorHandler.writeLog('info', 'IPC文件对话框结果', { result });
+    }
     return { success: true, result };
   } catch (error) {
-    return errorHandler.handleIpcError(error, '打开文件对话框');
+    if (errorHandler) {
+      return errorHandler.handleIpcError(error, '打开文件对话框');
+    } else {
+      return { success: false, error: error.message };
+    }
   }
 });
 
 ipcMain.handle('platform:refreshPermissions', async (event, binaryName = null) => {
-  errorHandler.writeLog('info', 'IPC刷新二进制权限请求', { binaryName });
+  if (errorHandler) {
+    errorHandler.writeLog('info', 'IPC刷新二进制权限请求', { binaryName });
+  }
   try {
     const result = await platformManager.refreshBinaryPermissions(binaryName);
-    errorHandler.logSuccess('刷新二进制权限', { binaryName, result });
+    if (errorHandler) {
+      errorHandler.logSuccess('刷新二进制权限', { binaryName, result });
+    }
     return { success: true, result };
   } catch (error) {
-    return errorHandler.handleIpcError(error, '刷新二进制权限', { binaryName });
+    if (errorHandler) {
+      return errorHandler.handleIpcError(error, '刷新二进制权限', { binaryName });
+    } else {
+      return { success: false, error: error.message };
+    }
   }
 });
 
 async function initializePlatform() {
-  errorHandler.writeLog('info', '开始平台初始化');
+  if (errorHandler) {
+    errorHandler.writeLog('info', '开始平台初始化');
+  }
   try {
     const platform = platformManager.getPlatformArch();
-    errorHandler.writeLog('info', '当前平台', { platform });
+    if (errorHandler) {
+      errorHandler.writeLog('info', '当前平台', { platform });
+    }
     
     await platformManager.createPlatformStructure();
-    errorHandler.writeLog('info', '平台目录结构创建完成');
+    if (errorHandler) {
+      errorHandler.writeLog('info', '平台目录结构创建完成');
+    }
     
     const results = await platformManager.ensureAllBinaryPermissions();
-    errorHandler.writeLog('info', '二进制权限设置结果', { results });
+    if (errorHandler) {
+      errorHandler.writeLog('info', '二进制权限设置结果', { results });
+    }
     
     const successCount = results.filter(r => r.success).length;
     const totalCount = results.length;
     
     if (successCount === totalCount) {
-      errorHandler.logSuccess('平台初始化', { platform, results });
+      if (errorHandler) {
+        errorHandler.logSuccess('平台初始化', { platform, results });
+      }
     } else {
-      errorHandler.logWarning(`平台初始化部分成功: ${successCount}/${totalCount}`, { platform, results });
+      if (errorHandler) {
+        errorHandler.logWarning(`平台初始化部分成功: ${successCount}/${totalCount}`, { platform, results });
+      }
     }
   } catch (error) {
-    errorHandler.writeLog('error', '平台初始化失败', error);
+    if (errorHandler) {
+      errorHandler.writeLog('error', '平台初始化失败', error);
+    }
   }
 }
 
 const createMenu = () => {
-  errorHandler.writeLog('info', '创建应用菜单');
+  if (errorHandler) {
+    errorHandler.writeLog('info', '创建应用菜单');
+  }
   const template = [
     {
       label: '关于',

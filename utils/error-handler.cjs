@@ -3,7 +3,22 @@ const fs = require('fs');
 
 class ErrorHandler {
   constructor() {
-    this.logDir = path.join(__dirname, '../logs');
+    // 使用 userData 目录而不是应用包内的目录
+    const { app } = require('electron');
+    const os = require('os');
+    
+    if (app && app.isReady()) {
+      // app 已经就绪，可以安全使用 getPath
+      this.logDir = path.join(app.getPath('userData'), 'logs');
+    } else if (app) {
+      // app 存在但未就绪，使用临时目录作为备用
+      console.warn('Electron app 未就绪，使用临时日志目录');
+      this.logDir = path.join(os.tmpdir(), 'itools-logs');
+    } else {
+      // 开发环境或非 Electron 环境
+      this.logDir = path.join(__dirname, '../logs');
+    }
+    
     this.maxLogFiles = 7;
     this.maxLogSize = 10 * 1024 * 1024;
     this.ensureLogDir();
@@ -14,13 +29,31 @@ class ErrorHandler {
    * 确保日志目录存在
    */
   ensureLogDir() {
-    if (!fs.existsSync(this.logDir)) {
-      fs.mkdirSync(this.logDir, { recursive: true });
+    try {
+      if (!fs.existsSync(this.logDir)) {
+        fs.mkdirSync(this.logDir, { recursive: true });
+      }
+    } catch (err) {
+      // 如果无法创建日志目录，回退到临时目录
+      console.warn('无法创建日志目录:', err.message);
+      const os = require('os');
+      this.logDir = path.join(os.tmpdir(), 'itools-logs');
+      try {
+        if (!fs.existsSync(this.logDir)) {
+          fs.mkdirSync(this.logDir, { recursive: true });
+        }
+      } catch (fallbackErr) {
+        console.error('无法创建备用日志目录:', fallbackErr.message);
+        // 完全禁用文件日志记录
+        this.logDir = null;
+      }
     }
   }
 
   // 清理旧日志文件
   cleanOldLogs() {
+    if (!this.logDir) return; // 如果日志目录不可用，跳过清理
+    
     try {
       const files = fs.readdirSync(this.logDir);
       const logFiles = files.filter(file => file.startsWith('itools-') && file.endsWith('.log'));
@@ -43,6 +76,8 @@ class ErrorHandler {
 
   // 检查日志轮转
   checkLogRotation(logFile) {
+    if (!this.logDir) return; // 如果日志目录不可用，跳过轮转
+    
     try {
       if (fs.existsSync(logFile)) {
         const stats = fs.statSync(logFile);
@@ -58,6 +93,12 @@ class ErrorHandler {
   }
 
   writeLog(level, message, error = null) {
+    // 如果日志目录不可用，只输出到控制台
+    if (!this.logDir) {
+      console.log(`[${level}] ${message}`, error ? error.message : '');
+      return;
+    }
+
     const timestamp = new Date().toISOString();
     const logEntry = {
       timestamp,
@@ -81,7 +122,9 @@ class ErrorHandler {
     try {
       fs.appendFileSync(logFile, logLine);
     } catch (err) {
-      // 忽略写入错误
+      // 如果写入失败，输出到控制台
+      console.log(`[${level}] ${message}`, error ? error.message : '');
+      console.warn('日志写入失败:', err.message);
     }
   }
 
