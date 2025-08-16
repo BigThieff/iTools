@@ -6,8 +6,30 @@
   background: #fff;
   border: none;
   padding: 16px 12px; /* 内部空白 */
-  max-height: calc(100vh - 96px); /* 高度自适应，减去顶部和底部的空白 */
+  height: calc(100vh - 200px); /* 适应父容器的固定高度 */
   overflow-y: auto; /* 启用垂直滚动条 */
+  overflow-x: hidden; /* 隐藏横向滚动条 */
+  display: flex;
+  flex-direction: column;
+}
+
+/* 确保Card内容区域可以滚动 */
+.subtitle-extractor-card .ant-card-body {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0; /* 允许flex子项收缩 */
+  padding-bottom: 16px; /* 确保底部有足够空间 */
+}
+
+/* 确保Space组件不会限制高度 */
+.subtitle-extractor-card .ant-space {
+  width: 100%;
+  min-height: 100%;
+}
+
+/* 确保Space的垂直方向项目适当对齐 */
+.subtitle-extractor-card .ant-space-vertical {
+  width: 100%;
 }
 
 .subtitle-extractor-row {

@@ -1,10 +1,6 @@
 import React, { useState } from 'react';
 import { Layout, Menu, Typography } from 'antd';
-import {
-  FileTextOutlined,
-  CloudDownloadOutlined,
-  ToolOutlined,
-} from '@ant-design/icons';
+import { FileTextOutlined, CloudDownloadOutlined, ToolOutlined } from '@ant-design/icons';
 import SubtitleExtractor from './SubtitleExtractor.jsx';
 import './AppLayout.css';
 
@@ -32,7 +28,7 @@ const tools = [
   },
 ];
 
-export default function MainLayout() {
+export default function AppLayout() {
   const [selectedKey, setSelectedKey] = useState('subtitle');
   const selectedTool = tools.find((t) => t.key === selectedKey);
 
@@ -46,7 +42,9 @@ export default function MainLayout() {
           theme="dark"
           mode="inline"
           selectedKeys={[selectedKey]}
-          onClick={(e) => setSelectedKey(e.key)}
+          onClick={(e) => {
+            setSelectedKey(e.key);
+          }}
           items={tools.map((tool) => ({
             key: tool.key,
             icon: tool.icon,

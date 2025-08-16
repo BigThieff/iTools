@@ -9,34 +9,23 @@ import {
   message,
   Tooltip,
   Space,
+  Progress,
 } from 'antd';
 import {
   FileOutlined,
   PlayCircleOutlined,
   QuestionCircleOutlined,
 } from '@ant-design/icons';
+import { LANGUAGES, MODEL_INFOS } from '../constants/languages.js';
+import { getUserFriendlyError } from '../utils/errorMessages.js';
+import { FILE_VALIDATION } from '../utils/fileValidation.js';
+import { configManager } from '../utils/configManager.js';
 import './SubtitleExtractor.css';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 
-const LANGUAGES = [
-  { label: '中文', value: 'zh' },
-  { label: '英文', value: 'en' },
-  { label: '日文', value: 'ja' },
-  { label: '韩文', value: 'ko' },
-  { label: '法文', value: 'fr' },
-  { label: '德文', value: 'de' },
-  { label: '西班牙文', value: 'es' },
-];
-
-const MODEL_INFOS = {
-  'ggml-base.bin': 'Base：速度最快，精度较低，适合快速预览',
-  'ggml-small.bin': 'Small：速度快，精度中等，推荐日常使用',
-  'ggml-medium.bin': 'Medium：速度较慢，精度高，适合高质量需求',
-};
-
-export default function SubtitleTool() {
+export default function SubtitleExtractor() {
   const [videoPath, setVideoPath] = useState('');
   const [status, setStatus] = useState('');
   const [models, setModels] = useState([]);
@@ -46,14 +35,71 @@ export default function SubtitleTool() {
   const [targetLang, setTargetLang] = useState('en');
   const [subtitleOrder, setSubtitleOrder] = useState('main-first');
   const [isExtracting, setIsExtracting] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [progressText, setProgressText] = useState('');
   const contentRef = useRef(null);
 
+  // 加载用户配置
   useEffect(() => {
-    window.api.listModels().then((list) => {
-      setModels(list);
-      const defaultModel =
-        list.find((model) => model.includes('small')) || list[0];
-      if (defaultModel) setSelectedModel(defaultModel);
+    const config = configManager.getConfig();
+    if (config.rememberLastSettings) {
+      setLanguage(config.defaultLanguage);
+      setSubtitleType(config.defaultSubtitleType);
+    }
+  }, []);
+
+  // 快捷键支持 - 使用 useRef 获取最新状态值
+  const latestState = useRef();
+  latestState.current = {
+    isExtracting,
+    videoPath,
+    selectedModel,
+    language,
+    subtitleType,
+    targetLang,
+    subtitleOrder
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      const current = latestState.current;
+      
+      // Ctrl/Cmd + O: 选择文件
+      if ((event.ctrlKey || event.metaKey) && event.key === 'o') {
+        event.preventDefault();
+        event.stopPropagation();
+        if (!current.isExtracting) {
+          handleSelectFile();
+        }
+        return;
+      }
+      
+      // Ctrl/Cmd + Enter: 开始提取字幕
+      if ((event.ctrlKey || event.metaKey) && event.key === 'Enter' && !current.isExtracting && current.videoPath && current.selectedModel) {
+        event.preventDefault();
+        event.stopPropagation();
+        handleExtract();
+        return;
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown, true); // 使用 capture 阶段
+    return () => document.removeEventListener('keydown', handleKeyDown, true);
+  }, []); // 空依赖数组，因为我们使用 ref 获取最新值
+
+  useEffect(() => {
+    window.api.listModels().then((response) => {
+      if (response.success && Array.isArray(response.models)) {
+        setModels(response.models);
+        const defaultModel = response.models.find((model) => model.includes('small')) || response.models[0];
+        if (defaultModel) {
+          setSelectedModel(defaultModel);
+        }
+      } else {
+        setModels([]);
+      }
+    }).catch((error) => {
+      setModels([]);
     });
   }, []);
 
@@ -66,110 +112,159 @@ export default function SubtitleTool() {
   const handleSelectFile = async () => {
     const filePath = await window.api.selectFile();
     if (filePath) {
+      // 验证文件格式
+      if (!FILE_VALIDATION.validateFileFormat(filePath)) {
+        message.warning({
+          content: `不支持的文件格式，支持的格式：${FILE_VALIDATION.SUPPORTED_FORMATS.join(', ')}`,
+          duration: 4,
+        });
+        return;
+      }
+      
       setVideoPath(filePath);
       setStatus('');
+      
+      // 保存用户设置
+      const config = configManager.getConfig();
+      if (config.rememberLastSettings) {
+        configManager.saveConfig({
+          defaultLanguage: language,
+          defaultSubtitleType: subtitleType,
+        });
+      }
     }
   };
 
   const handleExtract = async () => {
-    console.log('开始提取字幕...');
-
-    // 检查是否已存在相同参数的字幕文件
+    // 从 latestState 获取最新的状态值，确保快捷键和按钮行为一致
+    const current = latestState.current;
+    let progressInterval = null;
+    
     try {
-      const exists = await window.api.checkSubtitleExists(
-        videoPath,
-        selectedModel,
-        language,
-        subtitleType === 'dual' ? targetLang : undefined,
+      const response = await window.api.checkSubtitleExists(
+        current.videoPath,
+        current.selectedModel,
+        current.language,
+        current.subtitleType === 'dual' ? current.targetLang : undefined,
+        current.subtitleOrder,
       );
 
-      console.log('字幕文件是否已存在:', exists); // 添加日志
+      const exists = response.success ? response.exists : false;
+      
+      console.log('字幕存在检查结果:', { 
+        exists, 
+        videoPath: current.videoPath, 
+        model: current.selectedModel, 
+        language: current.language, 
+        subtitleType: current.subtitleType,
+        targetLang: current.targetLang 
+      });
 
       if (exists) {
-        // 生成友好的提示信息
-        const modelDisplay = selectedModel
-          .replace(/^ggml-/, '')
-          .replace('.bin', '');
-        const langDisplay =
-          LANGUAGES.find((l) => l.value === language)?.label || language;
+        const modelDisplay = current.selectedModel.replace(/^ggml-/, '').replace('.bin', '');
+        const langDisplay = LANGUAGES.find(l => l.value === current.language)?.label || current.language;
         let tipMessage = `已存在 ${modelDisplay} 模型的 ${langDisplay} 字幕`;
-
-        if (subtitleType === 'dual') {
-          const targetDisplay =
-            LANGUAGES.find((l) => l.value === targetLang)?.label || targetLang;
-          tipMessage += ` + ${targetDisplay} 双语字幕`;
+        if (current.subtitleType === 'dual') {
+          const targetDisplay = LANGUAGES.find(l => l.value === current.targetLang)?.label || current.targetLang;
+          tipMessage += ` 和 ${targetDisplay} 字幕`;
         }
-
-        // 同时使用多种方式提示用户
-        const fullMessage = tipMessage + '，无需重复提取';
-
-        // 1. 使用 message.info
+        
         message.info({
-          content: fullMessage,
-          duration: 5, // 延长显示时间
-          style: {
-            marginTop: '20vh',
-            zIndex: 9999, // 确保在最上层
-          },
+          content: `${tipMessage}，无需重复提取`,
+          duration: 5,
+          style: { marginTop: '20vh' },
         });
-
-        // 2. 同时更新状态显示
-        setStatus(`✅ ${fullMessage}`);
-
-        // 3. 控制台日志
-        console.log('字幕已存在，跳过提取:', fullMessage);
-
+        setStatus(`✅ ${tipMessage}`);
         return;
       }
-    } catch (checkError) {
-      console.error('检查字幕存在失败:', checkError);
 
-      // 检查失败时也给用户提示
-      message.warning({
-        content: '检查字幕文件失败，将继续尝试提取',
-        duration: 3,
+      setIsExtracting(true);
+      setProgress(0);
+      setProgressText('准备中...');
+
+      const fileName = current.videoPath.split('/').pop();
+      setStatus(`正在处理：${fileName}`);
+
+      // 优化的进度更新机制
+      let currentProgress = 0;
+      let currentStage = 0;
+      const stages = [
+        { text: '音频提取中...', maxProgress: 25, speed: 0.8 },
+        { text: '语音识别中...', maxProgress: 85, speed: 0.4 },
+        { text: '字幕生成中...', maxProgress: 96, speed: 0.2 }
+      ];
+
+      progressInterval = setInterval(() => {
+        const stage = stages[currentStage];
+        if (!stage) return;
+
+        // 计算当前阶段的进度增长
+        const increment = Math.random() * stage.speed + 0.1;
+        currentProgress = Math.min(currentProgress + increment, stage.maxProgress);
+        
+        setProgress(currentProgress);
+        setProgressText(stage.text);
+
+        // 当接近当前阶段最大进度时，切换到下一阶段
+        if (currentProgress >= stage.maxProgress - 2 && currentStage < stages.length - 1) {
+          currentStage++;
+        }
+      }, 200); // 更频繁的更新，让进度条更流畅
+
+      const result = await window.api.extractSubtitle(current.videoPath, {
+        modelName: current.selectedModel,
+        language: current.language,
+        dual: current.subtitleType === 'dual',
+        targetLang: current.subtitleType === 'dual' ? current.targetLang : undefined,
+        subtitleOrder: current.subtitleOrder,
       });
-      setStatus('⚠️ 检查字幕文件失败，继续提取...');
-    }
 
-    setStatus('处理中...');
-    setIsExtracting(true);
-
-    try {
-      const options = {
-        modelName: selectedModel,
-        language,
-        dual: subtitleType === 'dual',
-        targetLang: subtitleType === 'dual' ? targetLang : undefined,
-        subtitleOrder,
-      };
-
-      const srtPath = await window.api.extractSubtitle(videoPath, options);
-      console.log('字幕提取成功:', srtPath);
-
-      // 修改成功提示部分
-      if (subtitleType === 'dual') {
-        setStatus(`双语字幕生成成功：${srtPath.split('/').pop()}`); // 使用 split 获取文件名
-        message.success({
-          content: '双语字幕生成成功！',
-          duration: 3,
-        });
-      } else {
-        setStatus(`字幕生成成功：${srtPath.split('/').pop()}`); // 使用 split 获取文件名
-        message.success({
-          content: '字幕生成成功！',
-          duration: 3,
-        });
-      }
-    } catch (e) {
-      console.error('提取字幕失败:', e.message);
-      setStatus(`失败：${e.message}`);
+      // 在实际完成时快速完成进度条
+      if (progressInterval) clearInterval(progressInterval);
+      
+      // 快速推进到98%，然后到100%
+      setProgress(98);
+      setProgressText('正在完成...');
+      
+      setTimeout(() => {
+        setProgress(100);
+        setProgressText('完成！');
+        
+        setTimeout(() => {
+          if (result.success) {
+            if (current.subtitleType === 'dual') {
+              setStatus(`双语字幕生成成功：${fileName}`);
+              message.success({
+                content: '双语字幕生成成功！',
+                duration: 3,
+              });
+            } else {
+              setStatus(`字幕生成成功：${fileName}`);
+              message.success({
+                content: '字幕生成成功！',
+                duration: 3,
+              });
+            }
+          } else {
+            throw new Error(result.error || '字幕提取失败');
+          }
+        }, 500); // 让用户看到"完成！"状态
+      }, 200);
+    } catch (error) {
+      if (progressInterval) clearInterval(progressInterval);
+      setProgress(0);
+      setProgressText('');
+      
+      const friendlyError = getUserFriendlyError(error);
+      setStatus(`失败：${friendlyError}`);
       message.error({
-        content: '字幕生成失败，请检查视频文件和模型',
+        content: friendlyError,
         duration: 5,
       });
     } finally {
       setIsExtracting(false);
+      setProgress(0);
+      setProgressText('');
     }
   };
 
@@ -178,12 +273,12 @@ export default function SubtitleTool() {
       className="subtitle-extractor-card"
       title={<Title level={3}>🎬 字幕提取工具</Title>}
       bordered={false}
+      ref={contentRef}
     >
       <Space
         direction="vertical"
         size="large"
-        style={{ width: '100%' }}
-        ref={contentRef}
+        style={{ width: '100%', height: '100%' }}
       >
         {/* 模型选择 */}
         <div className="subtitle-extractor-row">
@@ -199,7 +294,7 @@ export default function SubtitleTool() {
             onChange={setSelectedModel}
             placeholder="请选择模型"
           >
-            {models.map((m) => (
+            {Array.isArray(models) && models.map((m) => (
               <Option key={m} value={m}>
                 {m
                   .replace(/^ggml-/, '')
@@ -261,7 +356,7 @@ export default function SubtitleTool() {
               style={{ width: 160 }}
               value={targetLang}
               onChange={setTargetLang}
-              options={LANGUAGES.filter((l) => l.value !== language)}
+              options={LANGUAGES.filter((l) => l.value !== language && l.value !== 'auto')}
             />
           </div>
         )}
@@ -295,7 +390,7 @@ export default function SubtitleTool() {
             disabled={isExtracting}
             block
           >
-            选择视频文件
+            选择视频文件 <span style={{ opacity: 0.7 }}>(Ctrl+O)</span>
           </Button>
           {videoPath && (
             <div className="subtitle-extractor-path">
@@ -314,9 +409,33 @@ export default function SubtitleTool() {
             disabled={!videoPath || !selectedModel || isExtracting}
             block
           >
-            提取字幕
+            提取字幕 <span style={{ opacity: 0.7 }}>(Ctrl+Enter)</span>
           </Button>
         </div>
+        
+        {/* 进度条显示 */}
+        {isExtracting && (
+          <div style={{ margin: '16px 0' }}>
+            <Progress 
+              percent={Math.round(progress)} 
+              format={() => progressText}
+              status="active"
+              strokeColor={{
+                '0%': '#8a8a8a',
+                '50%': '#a8a8a8',
+                '100%': '#8a8a8a',
+              }}
+              trailColor="#f0f0f0"
+              strokeWidth={10}
+              style={{
+                fontSize: '13px',
+                fontWeight: '500',
+              }}
+              strokeLinecap="round"
+            />
+          </div>
+        )}
+        
         <Text type={status.startsWith('失败') ? 'danger' : 'success'}>
           {status}
         </Text>

@@ -1,8 +1,114 @@
+# Dependencies
 node_modules/
+.pnp
+.pnp.js
+
+# Production builds
 dist/
 renderer/dist/
-.DS_Store
-.env
-.vscode/
-models/ggml/*.bin
+build/
+
+# Electron builds and releases
 release/
+out/
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+logs/
+*.log
+
+# Icon generation temporary files
+assets/iTools-icon-*.svg
+assets/iconset/
+# Favicon files removed as they're not used in Electron app
+
+# Test files
+**/test.html
+**/*.test.js
+**/*.spec.js
+
+# Binary files and models (large files)
+bin/*/
+!bin/*/README.txt
+models/ggml/*.bin
+models/*.bin
+*.exe
+*.dmg
+*.AppImage
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# Temporary and backup files
+backup/
+temp-*/
+.tmp/
+*.tmp
+*.bak
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# IDE and editor files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+.atom/
+.brackets.json
+
+# Package manager lock files (keep only one)
+# npm
+# package-lock.json
+# yarn
+# yarn.lock
+
+# Analysis and documentation files (temporary)
+STATIC_LINKING_ANALYSIS.md
+PROJECT_COMPLETION_SUMMARY.md
+SOLUTION_SUMMARY.md
+DOWNLOAD_GUIDE.md
+WHISPER_CLI_GUIDE.md
+*_ANALYSIS.md
+*_SUMMARY.md
+*_GUIDE.md
+
+# Build artifacts
+*.o
+*.obj
+*.lib
+*.dll
+*.so
+*.dylib
+
+# macOS specific
+.AppleDouble
+# Note: .LSOverride and others are duplicated above, removed here
+
+# Windows specific
+*.lnk
+$RECYCLE.BIN/
+Desktop.ini
+
+# Linux specific
+*~
+.nfs*

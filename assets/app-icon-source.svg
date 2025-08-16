@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-label="iTools transparent icon source">
+  <!-- Transparent background. Only the "it" glyph. -->
+  <g fill="#4C8DFF">
+    <!-- i -->
+    <circle cx="440" cy="360" r="40"/>
+    <rect x="408" y="432" width="64" height="360" rx="32" ry="32"/>
+    <!-- t -->
+    <rect x="520" y="432" width="64" height="360" rx="32" ry="32"/>
+    <rect x="488" y="432" width="192" height="64" rx="32" ry="32"/>
+  </g>
+</svg>
