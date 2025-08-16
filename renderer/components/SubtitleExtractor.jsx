@@ -46,6 +46,34 @@ export default function SubtitleExtractor() {
       setLanguage(config.defaultLanguage);
       setSubtitleType(config.defaultSubtitleType);
     }
+
+    // 监听进度更新
+    window.api.onSubtitleProgress((progressData) => {
+      const { stage, progress } = progressData;
+      setProgress(Math.round(progress));
+      
+      switch (stage) {
+        case 'init':
+          setProgressText('准备中...');
+          break;
+        case 'audio':
+          setProgressText('音频提取中...');
+          break;
+        case 'whisper':
+          setProgressText('语音识别中...');
+          break;
+        case 'finish':
+          setProgressText('正在完成...');
+          break;
+        default:
+          setProgressText('处理中...');
+      }
+    });
+
+    // 组件卸载时清理监听器
+    return () => {
+      window.api.removeSubtitleProgressListener();
+    };
   }, []);
 
   // 快捷键支持 - 使用 useRef 获取最新状态值
@@ -138,7 +166,6 @@ export default function SubtitleExtractor() {
   const handleExtract = async () => {
     // 从 latestState 获取最新的状态值，确保快捷键和按钮行为一致
     const current = latestState.current;
-    let progressInterval = null;
     
     try {
       const response = await window.api.checkSubtitleExists(
@@ -185,32 +212,6 @@ export default function SubtitleExtractor() {
       const fileName = current.videoPath.split('/').pop();
       setStatus(`正在处理：${fileName}`);
 
-      // 优化的进度更新机制
-      let currentProgress = 0;
-      let currentStage = 0;
-      const stages = [
-        { text: '音频提取中...', maxProgress: 25, speed: 0.8 },
-        { text: '语音识别中...', maxProgress: 85, speed: 0.4 },
-        { text: '字幕生成中...', maxProgress: 96, speed: 0.2 }
-      ];
-
-      progressInterval = setInterval(() => {
-        const stage = stages[currentStage];
-        if (!stage) return;
-
-        // 计算当前阶段的进度增长
-        const increment = Math.random() * stage.speed + 0.1;
-        currentProgress = Math.min(currentProgress + increment, stage.maxProgress);
-        
-        setProgress(currentProgress);
-        setProgressText(stage.text);
-
-        // 当接近当前阶段最大进度时，切换到下一阶段
-        if (currentProgress >= stage.maxProgress - 2 && currentStage < stages.length - 1) {
-          currentStage++;
-        }
-      }, 200); // 更频繁的更新，让进度条更流畅
-
       const result = await window.api.extractSubtitle(current.videoPath, {
         modelName: current.selectedModel,
         language: current.language,
@@ -219,39 +220,24 @@ export default function SubtitleExtractor() {
         subtitleOrder: current.subtitleOrder,
       });
 
-      // 在实际完成时快速完成进度条
-      if (progressInterval) clearInterval(progressInterval);
-      
-      // 快速推进到98%，然后到100%
-      setProgress(98);
-      setProgressText('正在完成...');
-      
-      setTimeout(() => {
-        setProgress(100);
-        setProgressText('完成！');
-        
-        setTimeout(() => {
-          if (result.success) {
-            if (current.subtitleType === 'dual') {
-              setStatus(`双语字幕生成成功：${fileName}`);
-              message.success({
-                content: '双语字幕生成成功！',
-                duration: 3,
-              });
-            } else {
-              setStatus(`字幕生成成功：${fileName}`);
-              message.success({
-                content: '字幕生成成功！',
-                duration: 3,
-              });
-            }
-          } else {
-            throw new Error(result.error || '字幕提取失败');
-          }
-        }, 500); // 让用户看到"完成！"状态
-      }, 200);
+      if (result.success) {
+        if (current.subtitleType === 'dual') {
+          setStatus(`双语字幕生成成功：${fileName}`);
+          message.success({
+            content: '双语字幕生成成功！',
+            duration: 3,
+          });
+        } else {
+          setStatus(`字幕生成成功：${fileName}`);
+          message.success({
+            content: '字幕生成成功！',
+            duration: 3,
+          });
+        }
+      } else {
+        throw new Error(result.error || '字幕提取失败');
+      }
     } catch (error) {
-      if (progressInterval) clearInterval(progressInterval);
       setProgress(0);
       setProgressText('');
       
@@ -263,8 +249,11 @@ export default function SubtitleExtractor() {
       });
     } finally {
       setIsExtracting(false);
-      setProgress(0);
-      setProgressText('');
+      // 保持进度条显示一会儿再清除
+      setTimeout(() => {
+        setProgress(0);
+        setProgressText('');
+      }, 2000);
     }
   };
 
@@ -304,6 +293,7 @@ export default function SubtitleExtractor() {
             ))}
           </Select>
         </div>
+        
         {/* 视频语言 */}
         <div className="subtitle-extractor-row">
           <span>

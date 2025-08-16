@@ -5,6 +5,16 @@ contextBridge.exposeInMainWorld('api', {
     return ipcRenderer.invoke('subtitle:extract', videoPath, options);
   },
   
+  // 监听进度更新
+  onSubtitleProgress: (callback) => {
+    ipcRenderer.on('subtitle:progress', (event, progressData) => callback(progressData));
+  },
+  
+  // 移除进度监听器
+  removeSubtitleProgressListener: () => {
+    ipcRenderer.removeAllListeners('subtitle:progress');
+  },
+  
   selectFile: async () => {
     const response = await ipcRenderer.invoke('dialog:openFile');
     if (!response.success) {

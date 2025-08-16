@@ -17,14 +17,17 @@
     "dist:win": "npm run build && electron-builder --win",
     "dist:win:x64": "npm run build && electron-builder --win --x64",
     "dist:win:ia32": "npm run build && electron-builder --win --ia32",
+    "dist:win:arm64": "npm run build && electron-builder --win --arm64",
     "dist:linux": "npm run build && electron-builder --linux",
     "dist:linux:x64": "npm run build && electron-builder --linux --x64",
     "dist:linux:arm64": "npm run build && electron-builder --linux --arm64",
     "clean-release": "rm -rf release/*",
+    "clean-release-temp": "find release/ -name '*.blockmap' -delete && find release/ -name '*.yml' -delete && find release/ -name 'builder-*.y*ml' -delete && rm -rf release/mac* release/linux* release/win32* || true",
     "clean-dist": "rm -rf renderer/dist/*",
     "clean-logs": "node ./scripts/clean-logs.js --clean",
     "clean-logs:preview": "node ./scripts/clean-logs.js",
     "clean": "npm run clean-release && npm run clean-dist",
+    "clean:temp": "npm run clean-release-temp && npm run clean-dist",
     "postinstall": "electron-builder install-app-deps",
     "icons:gen": "node ./scripts/generate-icons.js"
   },
@@ -51,14 +54,16 @@
           "target": "nsis",
           "arch": [
             "x64",
-            "ia32"
+            "ia32",
+            "arm64"
           ]
         },
         {
           "target": "dir",
           "arch": [
             "x64",
-            "ia32"
+            "ia32",
+            "arm64"
           ]
         }
       ],
