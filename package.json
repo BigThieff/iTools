@@ -1,20 +1,120 @@
 {
   "name": "itools",
   "version": "1.0.0",
-  "main": "main.js",
+  "main": "electron-main.cjs",
   "scripts": {
     "start": "electron .",
-    "build-renderer": "webpack --config webpack.config.js",
+    "build-renderer": "webpack --config webpack.renderer.config.cjs --mode production",
+    "build-renderer:dev": "webpack --config webpack.renderer.config.cjs --mode development",
     "prepare": "husky install",
     "pack": "electron-builder --dir",
-    "dist": "electron-builder"
+    "build": "npm run clean-dist && npm run build-renderer",
+    "dist": "npm run build && electron-builder",
+    "dist:all": "npm run build && electron-builder --mac --win --linux",
+    "dist:mac": "npm run build && electron-builder --mac",
+    "dist:mac:arm64": "npm run build && electron-builder --mac --arm64",
+    "dist:mac:x64": "npm run build && electron-builder --mac --x64",
+    "dist:win": "npm run build && electron-builder --win",
+    "dist:win:x64": "npm run build && electron-builder --win --x64",
+    "dist:win:ia32": "npm run build && electron-builder --win --ia32",
+    "dist:win:arm64": "npm run build && electron-builder --win --arm64",
+    "dist:linux": "npm run build && electron-builder --linux",
+    "dist:linux:x64": "npm run build && electron-builder --linux --x64",
+    "dist:linux:arm64": "npm run build && electron-builder --linux --arm64",
+    "clean-release": "rm -rf release/*",
+    "clean-release-temp": "find release/ -name '*.blockmap' -delete && find release/ -name '*.yml' -delete && find release/ -name 'builder-*.y*ml' -delete && rm -rf release/mac* release/linux* release/win32* || true",
+    "clean-dist": "rm -rf renderer/dist/*",
+    "clean-logs": "node ./scripts/clean-logs.js --clean",
+    "clean-logs:preview": "node ./scripts/clean-logs.js",
+    "clean": "npm run clean-release && npm run clean-dist",
+    "clean:temp": "npm run clean-release-temp && npm run clean-dist",
+    "postinstall": "electron-builder install-app-deps",
+    "icons:gen": "node ./scripts/generate-icons.js"
   },
   "build": {
-    "appId": "com.example.itools",
+    "appId": "com.bigthieff.itools",
+    "productName": "iTools",
+    "compression": "maximum",
     "mac": {
-      "target": "dmg",
-      "icon": "assets/app-icon.icns"
-    }
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "category": "public.app-category.utilities",
+      "icon": "assets/app.icns"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64",
+            "ia32",
+            "arm64"
+          ]
+        },
+        {
+          "target": "dir",
+          "arch": [
+            "x64",
+            "ia32",
+            "arm64"
+          ]
+        }
+      ],
+      "icon": "assets/app.ico"
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "category": "Utility"
+    },
+    "files": [
+      "electron-main.cjs",
+      "electron-preload.js",
+      "renderer/",
+      "tools/",
+      "utils/",
+      "package.json",
+      "!renderer/dist/*.map",
+      "!**/.DS_Store",
+      "!**/README.txt"
+    ],
+    "extraResources": [
+      {
+        "from": "bin/",
+        "to": "bin/",
+        "filter": [
+          "**/*",
+          "!**/*.txt",
+          "!**/.DS_Store"
+        ]
+      },
+      {
+        "from": "models/",
+        "to": "models/",
+        "filter": [
+          "**/*",
+          "!**/.DS_Store"
+        ]
+      }
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "afterPack": "./scripts/after-pack.js"
   },
   "lint-staged": {
     "*.{js,jsx}": [
@@ -22,30 +122,46 @@
       "prettier --write"
     ]
   },
-  "type": "module",
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
+  "keywords": [
+    "electron",
+    "whisper",
+    "subtitle",
+    "video",
+    "ai",
+    "desktop-app"
+  ],
+  "author": "BigThieff",
+  "license": "MIT",
+  "description": "智能视频字幕提取工具 - 基于 OpenAI Whisper 和 FFmpeg 的跨平台桌面应用",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/BigThieff/iTools.git"
+  },
+  "homepage": "https://github.com/BigThieff/iTools",
+  "bugs": {
+    "url": "https://github.com/BigThieff/iTools/issues"
+  },
   "devDependencies": {
-    "@babel/core": "^7.28.0",
-    "@babel/preset-react": "^7.27.1",
-    "babel-loader": "^10.0.0",
-    "electron": "^37.2.4",
-    "electron-builder": "^26.0.12",
-    "eslint": "^9.32.0",
-    "eslint-config-prettier": "^10.1.8",
-    "eslint-define-config": "^2.1.0",
-    "eslint-plugin-prettier": "^5.5.3",
-    "eslint-plugin-react": "^7.37.5",
-    "husky": "^9.1.7",
-    "lint-staged": "^16.1.2",
-    "prettier": "^3.6.2",
-    "webpack": "^5.100.2",
-    "webpack-cli": "^6.0.1",
-    "webpack-dev-server": "^5.2.2"
+    "@babel/core": "^7.25.2",
+    "@babel/preset-react": "^7.24.7",
+    "babel-loader": "^9.1.3",
+    "css-loader": "^7.1.2",
+    "electron": "^31.3.1",
+    "electron-builder": "^24.13.3",
+    "eslint": "^9.8.0",
+    "husky": "^9.1.4",
+    "icon-gen": "^3.0.1",
+    "lint-staged": "^15.2.8",
+    "mini-css-extract-plugin": "2.9.4",
+    "prettier": "^3.3.3",
+    "sharp": "^0.33.5",
+    "style-loader": "^4.0.0",
+    "webpack": "^5.93.0",
+    "webpack-cli": "^5.1.4"
   },
   "dependencies": {
+    "antd": "^5.26.6",
+    "preact": "10.27.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   }

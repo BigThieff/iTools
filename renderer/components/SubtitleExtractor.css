@@ -1,0 +1,116 @@
+.subtitle-extractor-card {
+  max-width: 80%; /* 宽度占屏幕的 80% */
+  margin: 8px auto; /* 上下外边距 */
+  border-radius: 16px; /* 圆角 */
+  box-shadow: 0 4px 16px rgba(22, 119, 255, 0.08); /* 阴影 */
+  background: #fff;
+  border: none;
+  padding: 16px 12px; /* 内部空白 */
+  height: calc(100vh - 200px); /* 适应父容器的固定高度 */
+  overflow-y: auto; /* 启用垂直滚动条 */
+  overflow-x: hidden; /* 隐藏横向滚动条 */
+  display: flex;
+  flex-direction: column;
+}
+
+/* 确保Card内容区域可以滚动 */
+.subtitle-extractor-card .ant-card-body {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0; /* 允许flex子项收缩 */
+  padding-bottom: 16px; /* 确保底部有足够空间 */
+}
+
+/* 确保Space组件不会限制高度 */
+.subtitle-extractor-card .ant-space {
+  width: 100%;
+  min-height: 100%;
+}
+
+/* 确保Space的垂直方向项目适当对齐 */
+.subtitle-extractor-card .ant-space-vertical {
+  width: 100%;
+}
+
+.subtitle-extractor-row {
+  display: flex;
+  align-items: center;
+  gap: 12px; /* 保持按钮和下拉框的间距 */
+  justify-content: space-between;
+  margin-bottom: 16px; /* 减少表单项之间的垂直间距 */
+}
+
+.label-with-q {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  line-height: 1.2;
+  font-weight: 500;
+  padding-right: 18px; /* 预留问号空间，避免与右侧控件重叠 */
+}
+
+.qmark {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 16px;
+  height: 16px;
+  border: 1px solid #999;
+  border-radius: 50%;
+  font-size: 12px;
+  color: #666;
+  background: #fff;
+  position: absolute;
+  right: 0; /* 贴紧文字容器的右侧 */
+  bottom: -2px; /* 靠近文字底部，形成右下角效果 */
+  cursor: help;
+}
+
+.subtitle-extractor-buttons {
+  margin-top: 12px; /* 减少按钮与上方内容的间距 */
+  display: flex;
+  flex-direction: column;
+  gap: 8px; /* 减少按钮之间的间距 */
+}
+
+.subtitle-extractor-path {
+  display: flex;
+  align-items: center;
+  justify-content: center; /* 居中显示路径 */
+  margin-top: 8px; /* 与按钮保持适当间距 */
+  font-size: 14px;
+  color: #333;
+  word-break: break-all;
+}
+
+.subtitle-extractor-path-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 14px;
+  color: #333;
+}
+
+.subtitle-extractor-card .ant-progress-bg {
+  transition: width 0.2s ease-out; /* 更快更丝滑的过渡 */
+}
+
+/* 进度条文字也添加过渡 */
+.subtitle-extractor-card .ant-progress-text {
+  transition: all 0.2s ease-out;
+}
+
+@media (max-width: 768px) {
+  .subtitle-extractor-card {
+    max-width: 95%; /* 小屏幕时占用更大宽度 */
+    padding: 12px 8px; /* 减少内边距 */
+  }
+
+  .subtitle-extractor-row {
+    margin-bottom: 12px; /* 减少表单项之间的间距 */
+  }
+
+  .subtitle-extractor-buttons {
+    gap: 6px; /* 减少按钮之间的间距 */
+  }
+}

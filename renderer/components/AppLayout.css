@@ -1,0 +1,65 @@
+.main-layout {
+  min-height: 100vh;
+  background: linear-gradient(120deg, #eaf0fb 0%, #f7f8fa 100%);
+}
+.main-sider {
+  background: linear-gradient(180deg, #f5f6fa 0%, #eaf0fb 100%) !important;
+  color: #232946;
+  box-shadow: 2px 0 8px rgba(0,0,0,0.04);
+  border-right: 1px solid #e3e7ee;
+}
+.logo {
+  padding: 32px 0 16px 24px; /* 增加左侧内边距，避免侧边栏展开时贴边 */
+  text-align: left;
+  color: #232946;
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: 1px;
+}
+.main-title {
+  padding: 32px 0 16px 0;
+  text-align: center;
+  color: #232946;
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: 1px;
+}
+.main-header {
+  background: #fff !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  padding: 8px 32px; /* 减少上下内边距 */
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid #e3e7ee;
+}
+.main-content {
+  margin: 16px; /* 外部空白 */
+  padding: 16px; /* 内部空白 */
+  background: #fff;
+  border-radius: 16px; /* 圆角 */
+  min-height: 400px; /* 最小高度 */
+  height: calc(100vh - 120px); /* 固定高度，为header和margin预留空间 */
+  overflow: visible; /* 允许子组件控制滚动 */
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08); /* 阴影 */
+}
+.ant-menu-dark {
+  background: transparent !important;
+}
+.ant-menu-item {
+  margin: 8px 0 !important;
+  font-size: 16px !important;
+  border-radius: 8px !important;
+  background: #f0f2f5 !important;
+  color: #232946 !important;
+  transition: background 0.2s, color 0.2s;
+}
+.ant-menu-item:hover {
+  background: #eaf0fb !important;
+  color: #1677ff !important;
+}
+.ant-menu-item-selected {
+  background: #eaf0fb !important;
+  color: #1677ff !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+}

@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="UTF-8" />
+    <title>iTools - 智能视频字幕提取工具</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        background: linear-gradient(120deg, #eaf0fb 0%, #f7f8fa 100%);
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+        overflow: auto; /* 允许滚动 */
+      }
+      #root {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: stretch;
+        overflow: visible; /* 允许内容溢出 */
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script src="dist/runtime.js"></script>
+    <script src="dist/vendor.js"></script>
+    <script src="dist/main.js"></script>
+  </body>
+</html>
