@@ -74,62 +74,25 @@ esac
 
 # 下载 Whisper CLI
 echo ""
-echo "⬇️  下载 Whisper CLI..."
+echo "⬇️  编译 Whisper CLI 静态版本..."
 
-# 尝试从 GitHub releases 下载预编译版本
-WHISPER_URL=""
-case "$PLATFORM" in
-    "darwin-arm64"|"darwin-x64")
-        # macOS 通用版本
-        WHISPER_URL="https://github.com/ggerganov/whisper.cpp/releases/latest/download/whisper-bin-macos.zip"
-        ;;
-    "linux-x64"|"linux-arm64")
-        # Linux 版本
-        WHISPER_URL="https://github.com/ggerganov/whisper.cpp/releases/latest/download/whisper-bin-linux.zip"
-        ;;
-esac
-
-if [[ -n "$WHISPER_URL" ]]; then
-    # 尝试下载预编译版本
-    if curl -L "$WHISPER_URL" -o whisper.zip 2>/dev/null; then
-        if unzip -q whisper.zip -d temp-whisper 2>/dev/null; then
-            # 查找可执行文件
-            if [[ -f "temp-whisper/main" ]]; then
-                mv temp-whisper/main "$TARGET_DIR/whisper-cli"
-            elif [[ -f "temp-whisper/whisper" ]]; then
-                mv temp-whisper/whisper "$TARGET_DIR/whisper-cli"
-            elif ls temp-whisper/ | grep -E "(main|whisper)" > /dev/null 2>&1; then
-                # 使用找到的第一个匹配文件
-                mv temp-whisper/$(ls temp-whisper/ | grep -E "(main|whisper)" | head -1) "$TARGET_DIR/whisper-cli"
-            else
-                echo "⚠️  预编译版本下载失败，将尝试从源码编译..."
-                rm -rf whisper.zip temp-whisper
-                COMPILE_FROM_SOURCE=true
-            fi
-            chmod +x "$TARGET_DIR/whisper-cli" 2>/dev/null || true
-            rm -rf whisper.zip temp-whisper
-            
-            if [[ "$COMPILE_FROM_SOURCE" != "true" ]]; then
-                echo "✅ Whisper CLI 下载完成"
-            fi
-        else
-            echo "⚠️  预编译版本下载失败，将尝试从源码编译..."
-            rm -rf whisper.zip
-            COMPILE_FROM_SOURCE=true
-        fi
-    else
-        echo "⚠️  预编译版本下载失败，将尝试从源码编译..."
-        COMPILE_FROM_SOURCE=true
-    fi
-else
-    COMPILE_FROM_SOURCE=true
-fi
-
-# 如果预编译版本失败，从源码编译
-if [[ "$COMPILE_FROM_SOURCE" == "true" ]]; then
-    echo "🔨 从源码编译 Whisper CLI..."
+# 强制从源码编译静态版本以避免动态库依赖问题
+echo "🔨 从源码编译 Whisper CLI (静态链接版本)..."
+    echo "🔨 从源码编译 Whisper CLI (静态链接版本)..."
     
     # 检查必要的编译工具
+    if ! command -v cmake &> /dev/null; then
+        echo "❌ 缺少 cmake 工具，请先安装:"
+        if [[ "$OS" == "Darwin" ]]; then
+            echo "   brew install cmake"
+            echo "   或者从 https://cmake.org/download/ 下载"
+        else
+            echo "   sudo apt-get install cmake (Ubuntu/Debian)"
+            echo "   sudo yum install cmake (CentOS/RHEL)"
+        fi
+        exit 1
+    fi
+    
     if ! command -v make &> /dev/null; then
         echo "❌ 缺少 make 工具，请先安装开发工具:"
         if [[ "$OS" == "Darwin" ]]; then
@@ -141,16 +104,38 @@ if [[ "$COMPILE_FROM_SOURCE" == "true" ]]; then
         exit 1
     fi
     
-    # 下载源码并编译
+    # 下载源码并编译静态版本
     git clone https://github.com/ggerganov/whisper.cpp.git temp-whisper-source
     cd temp-whisper-source
-    make -j$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
+    
+    # 配置cmake进行静态链接编译
+    echo "🔧 配置cmake进行静态链接编译..."
+    if [[ "$OS" == "Darwin" ]]; then
+        # macOS 使用Metal后端的静态编译
+        cmake -B build-static \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DGGML_STATIC=ON \
+            -DGGML_BLAS=OFF \
+            -DGGML_METAL=ON \
+            -DCMAKE_BUILD_TYPE=Release
+    else
+        # Linux 静态编译
+        cmake -B build-static \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DGGML_STATIC=ON \
+            -DGGML_BLAS=OFF \
+            -DCMAKE_BUILD_TYPE=Release
+    fi
+    
+    # 编译
+    echo "🔨 开始编译静态版本..."
+    cmake --build build-static --config Release -j$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
+    
     cd ..
-    mv temp-whisper-source/main "$TARGET_DIR/whisper-cli"
+    mv temp-whisper-source/build-static/bin/whisper-cli "$TARGET_DIR/whisper-cli"
     chmod +x "$TARGET_DIR/whisper-cli"
     rm -rf temp-whisper-source
-    echo "✅ Whisper CLI 编译完成"
-fi
+    echo "✅ Whisper CLI 静态链接版本编译完成"
 
 # 验证下载的文件
 echo ""

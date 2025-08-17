@@ -85,55 +85,109 @@ echo ✅ FFmpeg 下载完成
 
 :: 下载 Whisper CLI
 echo.
-echo ⬇️  下载 Whisper CLI...
+echo ⬇️  编译 Whisper CLI 静态版本...
 
-:: 尝试下载预编译版本
-set WHISPER_URL=https://github.com/ggerganov/whisper.cpp/releases/latest/download/whisper-bin-windows.zip
+:: 强制从源码编译静态版本以避免动态库依赖问题
+echo 🔨 从源码编译 Whisper CLI (静态链接版本)...
 
-curl -L "%WHISPER_URL%" -o whisper.zip
+:: 检查 Git 是否可用
+git --version >nul 2>&1
 if errorlevel 1 (
-    echo ⚠️  预编译版本下载失败，尝试替代源...
-    
-    :: 尝试从其他源下载
-    curl -L "https://github.com/ggerganov/whisper.cpp/releases/latest/download/whisper-bin-Win32.zip" -o whisper.zip
-    if errorlevel 1 (
-        echo ❌ Whisper CLI 下载失败
-        echo 💡 请手动从以下地址下载:
-        echo    https://github.com/ggerganov/whisper.cpp/releases
-        echo    下载对应 Windows 版本，重命名为 whisper-cli.exe 并放入 %TARGET_DIR%
+    echo ❌ 需要 Git 来下载源码，请先安装 Git
+    echo 💡 下载地址: https://git-scm.com/download/win
+    pause
+    exit /b 1
+)
+
+:: 检查 CMake 是否可用
+cmake --version >nul 2>&1
+if errorlevel 1 (
+    echo ❌ 需要 CMake 来编译源码，请先安装 CMake
+    echo 💡 下载地址: https://cmake.org/download/
+    pause
+    exit /b 1
+)
+
+:: 检查 Visual Studio Build Tools 或 Visual Studio
+where cl.exe >nul 2>&1
+if errorlevel 1 (
+    :: 尝试查找 Visual Studio 环境
+    if exist "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Auxiliary\Build\vcvars64.bat" (
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
+    ) else if exist "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat" (
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
+    ) else if exist "C:\Program Files\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars64.bat" (
+        call "C:\Program Files\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars64.bat"
+    ) else if exist "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat" (
+        call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+    ) else (
+        echo ❌ 需要 Visual Studio Build Tools 或 Visual Studio 来编译源码
+        echo 💡 请安装 Visual Studio Build Tools 或 Visual Studio Community
+        echo    Build Tools 下载: https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio
         pause
         exit /b 1
     )
 )
 
-powershell -command "Expand-Archive -Path whisper.zip -DestinationPath temp-whisper -Force"
+:: 下载源码并编译静态版本
+echo 🔧 下载 whisper.cpp 源码...
+git clone https://github.com/ggerganov/whisper.cpp.git temp-whisper-source
 if errorlevel 1 (
-    echo ❌ Whisper CLI 解压失败
-    del whisper.zip
+    echo ❌ 下载源码失败
     pause
     exit /b 1
 )
 
-:: 查找 whisper 可执行文件
-if exist "temp-whisper\main.exe" (
-    move "temp-whisper\main.exe" "%TARGET_DIR%\whisper-cli.exe"
-) else if exist "temp-whisper\whisper.exe" (
-    move "temp-whisper\whisper.exe" "%TARGET_DIR%\whisper-cli.exe"
-) else if exist "temp-whisper\whisper-cli.exe" (
-    move "temp-whisper\whisper-cli.exe" "%TARGET_DIR%\whisper-cli.exe"
+cd temp-whisper-source
+
+:: 配置cmake进行静态链接编译
+echo 🔧 配置cmake进行静态链接编译...
+cmake -B build-static ^
+    -DBUILD_SHARED_LIBS=OFF ^
+    -DGGML_STATIC=ON ^
+    -DCMAKE_BUILD_TYPE=Release ^
+    -A x64
+
+if errorlevel 1 (
+    echo ❌ CMake 配置失败
+    cd ..
+    rmdir /s /q temp-whisper-source
+    pause
+    exit /b 1
+)
+
+:: 编译
+echo 🔨 开始编译静态版本...
+cmake --build build-static --config Release
+
+if errorlevel 1 (
+    echo ❌ 编译失败
+    cd ..
+    rmdir /s /q temp-whisper-source
+    pause
+    exit /b 1
+)
+
+cd ..
+
+:: 移动编译好的文件
+if exist "temp-whisper-source\build-static\bin\Release\whisper-cli.exe" (
+    move "temp-whisper-source\build-static\bin\Release\whisper-cli.exe" "%TARGET_DIR%\whisper-cli.exe"
+) else if exist "temp-whisper-source\build-static\bin\whisper-cli.exe" (
+    move "temp-whisper-source\build-static\bin\whisper-cli.exe" "%TARGET_DIR%\whisper-cli.exe"
+) else if exist "temp-whisper-source\build-static\Release\whisper-cli.exe" (
+    move "temp-whisper-source\build-static\Release\whisper-cli.exe" "%TARGET_DIR%\whisper-cli.exe"
 ) else (
-    echo ❌ 在解压的文件中找不到 whisper 可执行文件
-    dir temp-whisper
-    echo 💡 请手动从 temp-whisper 目录中找到正确的可执行文件并重命名为 whisper-cli.exe
+    echo ❌ 编译的可执行文件位置不符合预期
+    echo 🔍 查找编译结果...
+    dir temp-whisper-source\build-static /s /b | findstr whisper
     pause
-    rmdir /s /q temp-whisper
-    del whisper.zip
+    rmdir /s /q temp-whisper-source
     exit /b 1
 )
 
-rmdir /s /q temp-whisper
-del whisper.zip
-echo ✅ Whisper CLI 下载完成
+rmdir /s /q temp-whisper-source
+echo ✅ Whisper CLI 静态链接版本编译完成
 
 :: 验证下载的文件
 echo.
