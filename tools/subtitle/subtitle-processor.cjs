@@ -29,13 +29,17 @@ function checkSubtitleExists(videoPath, modelName, language, targetLang, subtitl
 }
 
 function listModels() {
-  const modelsPath = path.join(__dirname, '../../models/ggml');
+  const modelsPath = getResourcePath('models', 'ggml');
+  
+  console.log(`[SubtitleProcessor] 查找模型目录: ${modelsPath}`);
   
   if (!fs.existsSync(modelsPath)) {
+    console.log(`[SubtitleProcessor] 模型目录不存在: ${modelsPath}`);
     return [];
   }
   
   const models = fs.readdirSync(modelsPath).filter(file => file.endsWith('.bin'));
+  console.log(`[SubtitleProcessor] 找到模型文件: ${models}`);
   return models;
 }
 
@@ -50,8 +54,24 @@ async function getBinaryPaths() {
 }
 
 function getResourcePath(...pathSegments) {
-  const basePath = path.join(__dirname, '../../');
+  // 检测是否在打包环境中
+  const isPackaged = process.resourcesPath && 
+                    !process.resourcesPath.includes('node_modules') &&
+                    process.resourcesPath.includes('Contents/Resources');
+  
+  let basePath;
+  if (isPackaged) {
+    // 在打包环境中，extraResources 位于 process.resourcesPath
+    basePath = process.resourcesPath;
+    console.log(`[SubtitleProcessor] 使用打包模式资源路径: ${basePath}`);
+  } else {
+    // 在开发环境中，使用相对路径
+    basePath = path.join(__dirname, '../../');
+    console.log(`[SubtitleProcessor] 使用开发模式资源路径: ${basePath}`);
+  }
+  
   const fullPath = path.join(basePath, ...pathSegments);
+  console.log(`[SubtitleProcessor] 构建资源路径: ${fullPath}`);
   return fullPath;
 }
 
@@ -61,7 +81,6 @@ async function checkResources(ffmpeg, whisperBin, whisperModel) {
   console.log(`[SubtitleProcessor] Whisper 路径: ${whisperBin}`);
   console.log(`[SubtitleProcessor] 模型路径: ${whisperModel}`);
   
-  // 首先确保二进制文件权限
   console.log(`[SubtitleProcessor] 设置 FFmpeg 权限...`);
   const ffmpegPermissionSet = await platformManager.ensureBinaryPermissions(ffmpeg);
   if (!ffmpegPermissionSet) {
@@ -80,7 +99,6 @@ async function checkResources(ffmpeg, whisperBin, whisperModel) {
   }
   console.log(`[SubtitleProcessor] Whisper 权限设置成功`);
   
-  // 然后验证二进制文件
   console.log(`[SubtitleProcessor] 验证 FFmpeg...`);
   if (!await platformManager.validateBinary(ffmpeg)) {
     const error = `FFmpeg 二进制文件验证失败: ${ffmpeg}。请检查文件是否存在且有执行权限`;
@@ -108,15 +126,16 @@ async function checkResources(ffmpeg, whisperBin, whisperModel) {
   console.log(`[SubtitleProcessor] 所有资源检查通过`);
 }
 
-function extractAudio(ffmpeg, videoPath, wavPath, progressCallback = null) {
+function extractAudio(ffmpeg, videoPath, wavPath) {
   return new Promise((resolve, reject) => {
     const options = {
-      timeout: 600000, // 10分钟超时
-      maxBuffer: 200 * 1024 * 1024, // 200MB 缓冲区
+      timeout: 600000,
+      maxBuffer: 200 * 1024 * 1024,
       killSignal: 'SIGKILL'
     };
 
-    const process = execFile(ffmpeg, ['-y', '-i', videoPath, '-ac', '1', '-ar', '16000', wavPath], options, (err, stdout, stderr) => {
+    const args = ['-y', '-i', videoPath, '-vn', '-ac', '1', '-ar', '16000', wavPath];
+    execFile(ffmpeg, args, options, (err, stdout, stderr) => {
       if (err) {
         if (err.killed && err.signal === 'SIGKILL') {
           reject(new Error(`音频提取超时 (${options.timeout/1000}秒)，建议使用较短的视频片段`));
@@ -124,39 +143,21 @@ function extractAudio(ffmpeg, videoPath, wavPath, progressCallback = null) {
           reject(new Error(`音频提取失败: ${stderr || err.message}`));
         }
       } else {
-        if (progressCallback) progressCallback({ stage: 'audio', progress: 100 });
         resolve();
       }
-    });
-
-    // 监听进程状态和输出进度
-    if (progressCallback) {
-      let audioProgress = 0;
-      const progressInterval = setInterval(() => {
-        audioProgress = Math.min(audioProgress + Math.random() * 8 + 2, 95);
-        progressCallback({ stage: 'audio', progress: audioProgress });
-      }, 1000);
-      
-      process.on('close', () => clearInterval(progressInterval));
-      process.on('error', () => clearInterval(progressInterval));
-    }
-
-    // 监听进程状态
-    process.on('error', (err) => {
-      reject(new Error(`FFmpeg 进程启动失败: ${err.message}`));
     });
   });
 }
 
-function generateSubtitle(whisperBin, wavPath, whisperModel, language, outputFile, progressCallback = null) {
+function generateSubtitle(whisperBin, wavPath, whisperModel, language, outputFile) {
   return new Promise((resolve, reject) => {
     const options = {
-      timeout: 1200000, // 20分钟超时 (Whisper 处理时间较长)
-      maxBuffer: 500 * 1024 * 1024, // 500MB 缓冲区
+      timeout: 1200000,
+      maxBuffer: 500 * 1024 * 1024,
       killSignal: 'SIGKILL'
     };
-    
-    const process = execFile(whisperBin, [
+
+    execFile(whisperBin, [
       '-f', wavPath, '-osrt', '--model', whisperModel, '-l', language, '--output-file', outputFile
     ], options, (err, stdout, stderr) => {
       if (err) {
@@ -166,26 +167,8 @@ function generateSubtitle(whisperBin, wavPath, whisperModel, language, outputFil
           reject(new Error(`字幕生成失败: ${stderr || err.message}`));
         }
       } else {
-        if (progressCallback) progressCallback({ stage: 'whisper', progress: 100 });
         resolve();
       }
-    });
-
-    // 监听进程状态和输出进度
-    if (progressCallback) {
-      let whisperProgress = 0;
-      const progressInterval = setInterval(() => {
-        whisperProgress = Math.min(whisperProgress + Math.random() * 3 + 1, 95);
-        progressCallback({ stage: 'whisper', progress: whisperProgress });
-      }, 2000);
-      
-      process.on('close', () => clearInterval(progressInterval));
-      process.on('error', () => clearInterval(progressInterval));
-    }
-
-    // 监听进程状态
-    process.on('error', (err) => {
-      reject(new Error(`Whisper CLI 进程启动失败: ${err.message}`));
     });
   });
 }
@@ -209,38 +192,24 @@ async function extractSubtitle(videoPath, options = {}, progressCallback = null)
 
     await checkResources(ffmpeg, whisperCli, whisperModel);
 
-    if (progressCallback) progressCallback({ stage: 'init', progress: 10 });
-
+    // 基础进度：音频 10% -> 50%
+    if (progressCallback) progressCallback({ stage: 'audio', progress: 10 });
     const { name, dir } = path.parse(videoPath);
     const wavPath = path.join(dir, `${name}.wav`);
+    await extractAudio(ffmpeg, videoPath, wavPath);
+    if (progressCallback) progressCallback({ stage: 'audio', progress: 50 });
 
-    // 音频提取阶段 (10% - 30%)
-    if (progressCallback) progressCallback({ stage: 'audio', progress: 0 });
-    await extractAudio(ffmpeg, videoPath, wavPath, (progress) => {
-      if (progressCallback) {
-        const mappedProgress = 10 + (progress.progress * 0.2); // 10-30%
-        progressCallback({ stage: 'audio', progress: mappedProgress });
-      }
-    });
-
-    // 语音识别阶段 (30% - 95%)
-    if (progressCallback) progressCallback({ stage: 'whisper', progress: 30 });
+    // 基础进度：识别 50% -> 90%
+    if (progressCallback) progressCallback({ stage: 'whisper', progress: 50 });
     const outputBaseName = outputFile.replace('.srt', '');
-    await generateSubtitle(whisperCli, wavPath, whisperModel, language, outputBaseName, (progress) => {
-      if (progressCallback) {
-        const mappedProgress = 30 + (progress.progress * 0.65); // 30-95%
-        progressCallback({ stage: 'whisper', progress: mappedProgress });
-      }
-    });
+    await generateSubtitle(whisperCli, wavPath, whisperModel, language, outputBaseName);
+    if (progressCallback) progressCallback({ stage: 'whisper', progress: 90 });
 
-    // 完成阶段 (95% - 100%)
-    if (progressCallback) progressCallback({ stage: 'finish', progress: 95 });
+    // 完成 100%
+    if (progressCallback) progressCallback({ stage: 'finish', progress: 100 });
 
     if (fs.existsSync(outputFile)) {
-      if (fs.existsSync(wavPath)) {
-        fs.unlinkSync(wavPath);
-      }
-      if (progressCallback) progressCallback({ stage: 'finish', progress: 100 });
+      if (fs.existsSync(wavPath)) fs.unlinkSync(wavPath);
       return outputFile;
     } else {
       throw new Error('字幕生成失败（未找到输出文件）');

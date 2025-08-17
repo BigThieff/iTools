@@ -1,6 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import AppLayout from './components/AppLayout.jsx';
+// 懒加载主界面，减少初始包体积
+const AppLayout = React.lazy(() => import('./components/AppLayout.jsx'));
 import 'antd/dist/reset.css';
 
 class ErrorBoundary extends React.Component {
@@ -34,6 +35,8 @@ class ErrorBoundary extends React.Component {
 const root = createRoot(document.getElementById('root'));
 root.render(
   <ErrorBoundary>
-    <AppLayout />
+    <React.Suspense fallback={<div style={{ padding: 24 }}>加载中...</div>}>
+      <AppLayout />
+    </React.Suspense>
   </ErrorBoundary>
 );

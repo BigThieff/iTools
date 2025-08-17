@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { Layout, Menu, Typography } from 'antd';
-import { FileTextOutlined, CloudDownloadOutlined, ToolOutlined } from '@ant-design/icons';
+import Layout from 'antd/es/layout';
+import Menu from 'antd/es/menu';
+import Typography from 'antd/es/typography';
 import SubtitleExtractor from './SubtitleExtractor.jsx';
 import './AppLayout.css';
 
@@ -9,6 +10,7 @@ const { Title } = Typography;
 
 export default function AppLayout() {
   const [selectedKey, setSelectedKey] = useState('subtitle');
+  const [collapsed, setCollapsed] = useState(false);
 
   // 使用 useMemo 缓存组件实例，防止标签页切换时重新创建
   const componentInstances = useMemo(() => ({
@@ -20,17 +22,14 @@ export default function AppLayout() {
   const tools = [
     {
       key: 'subtitle',
-      icon: <FileTextOutlined />,
       label: '字幕提取',
     },
     {
       key: 'downloader',
-      icon: <CloudDownloadOutlined />,
       label: '视频下载',
     },
     {
       key: 'other',
-      icon: <ToolOutlined />,
       label: '其他工具',
     },
   ];
@@ -38,11 +37,16 @@ export default function AppLayout() {
   const selectedTool = tools.find((t) => t.key === selectedKey);
 
   return (
-    <Layout className="main-layout">
-      <Sider className="main-sider" width={180}>
-        <div className="main-title">
-          <Title level={3}>iTools</Title>
-        </div>
+    <Layout className="main-layout" style={{ minHeight: '100vh' }}>
+      <Sider
+        className="main-sider"
+        width={180}
+        breakpoint="lg"
+        collapsedWidth="0"
+        onBreakpoint={(broken) => setCollapsed(broken)}
+        onCollapse={(isCollapsed) => setCollapsed(isCollapsed)}
+      >
+        <div className="logo">iTools</div>
         <Menu
           theme="dark"
           mode="inline"
@@ -52,18 +56,28 @@ export default function AppLayout() {
           }}
           items={tools.map((tool) => ({
             key: tool.key,
-            icon: tool.icon,
             label: tool.label,
           }))}
         />
       </Sider>
       <Layout>
-        <Header className="main-header">
-          <Title level={4} style={{ margin: 0, color: '#232946' }}>
-            {selectedTool.label}
-          </Title>
+        <Header
+          className="main-header"
+          style={{
+            background: '#fff',
+            padding: '0 24px', // 统一左右 24px 留白，展开时也不贴边
+            borderBottom: '1px solid #f0f0f0',
+          }}
+        >
+          <span style={{ fontWeight: 600 }}>iTools</span>
+          <span style={{ marginLeft: 8, color: '#999' }}>{selectedTool.label}</span>
         </Header>
-        <Content className="main-content">
+        <Content
+          className="main-content"
+          style={{
+            margin: '16px 24px', // 统一左右 24px 留白
+          }}
+        >
           <div style={{ display: selectedKey === 'subtitle' ? 'block' : 'none' }}>
             {componentInstances.subtitle}
           </div>

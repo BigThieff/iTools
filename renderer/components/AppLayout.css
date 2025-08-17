@@ -8,6 +8,14 @@
   box-shadow: 2px 0 8px rgba(0,0,0,0.04);
   border-right: 1px solid #e3e7ee;
 }
+.logo {
+  padding: 32px 0 16px 24px; /* 增加左侧内边距，避免侧边栏展开时贴边 */
+  text-align: left;
+  color: #232946;
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: 1px;
+}
 .main-title {
   padding: 32px 0 16px 0;
   text-align: center;

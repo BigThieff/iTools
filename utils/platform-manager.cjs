@@ -17,6 +17,8 @@ class PlatformManager {
       const { app } = require('electron');
       if (app && app.isPackaged) {
         // 打包后的应用，二进制文件在 extraResources 中
+        // 在 macOS 中是 iTools.app/Contents/Resources/
+        // 在 Windows/Linux 中是 resources/
         this.projectRoot = process.resourcesPath;
       } else {
         // 未打包的应用
@@ -27,6 +29,7 @@ class PlatformManager {
     this.supportedPlatforms = this.getSupportedPlatforms();
     
     console.log(`[PlatformManager] 初始化 - 开发模式: ${this.isDev}, 项目根目录: ${this.projectRoot}`);
+    console.log(`[PlatformManager] 是否已打包: ${require('electron').app ? require('electron').app.isPackaged : 'N/A'}`);
   }
 
   getSupportedPlatforms() {
@@ -90,55 +93,60 @@ class PlatformManager {
       throw new Error(error);
     }
     
-    const possiblePaths = [
-      path.join(this.projectRoot, 'bin', platformArch, actualBinaryName),
-      path.join(this.projectRoot, 'bin', actualBinaryName)
-    ];
+    // 检查是否为打包应用
+    const { app } = require('electron');
+    const isPackaged = app && app.isPackaged;
+    
+    // 多个可能的路径，按优先级排序
+    let possiblePaths;
+    
+    if (isPackaged) {
+      // 打包后应用的路径结构
+      possiblePaths = [
+        // extraResources 中的平台特定路径
+        path.join(process.resourcesPath, 'bin', platformArch, actualBinaryName),
+        // 备用路径（如果打包结构不同）
+        path.join(process.resourcesPath, 'app', 'bin', platformArch, actualBinaryName),
+        path.join(process.resourcesPath, platformArch, actualBinaryName)
+      ];
+    } else {
+      // 开发环境路径
+      possiblePaths = [
+        path.join(this.projectRoot, 'bin', platformArch, actualBinaryName),
+        path.join(this.projectRoot, 'bin', actualBinaryName)
+      ];
+    }
 
+    console.log(`[PlatformManager] 是否打包: ${isPackaged}`);
     console.log(`[PlatformManager] 搜索路径:`, possiblePaths);
 
     for (const binaryPath of possiblePaths) {
       console.log(`[PlatformManager] 检查路径: ${binaryPath}`);
       if (fs.existsSync(binaryPath)) {
         console.log(`[PlatformManager] 找到二进制文件: ${binaryPath}`);
-        
-        // 在 macOS 上进行额外的安全检查
-        if (process.platform === 'darwin') {
-          try {
-            const { execSync } = require('child_process');
-            
-            // 检查隔离属性
-            try {
-              const xattrOutput = execSync(`xattr -l "${binaryPath}" 2>/dev/null || echo "no-attributes"`);
-              const xattrStr = xattrOutput.toString();
-              if (xattrStr.includes('com.apple.quarantine')) {
-                console.warn(`[PlatformManager] ⚠️  文件被隔离，可能导致执行失败: ${binaryPath}`);
-                console.warn(`[PlatformManager] 建议：请在系统设置->隐私与安全性中允许此应用运行`);
-              }
-            } catch (xattrCheckError) {
-              console.log(`[PlatformManager] 无法检查扩展属性（正常）:`, xattrCheckError.message);
-            }
-            
-            // 检查代码签名
-            try {
-              const codesignOutput = execSync(`codesign -dv "${binaryPath}" 2>&1 || echo "not-signed"`);
-              const codesignStr = codesignOutput.toString();
-              if (codesignStr.includes('not-signed') || codesignStr.includes('code object is not signed')) {
-                console.warn(`[PlatformManager] ⚠️  文件未签名，可能被 Gatekeeper 阻止: ${binaryPath}`);
-                console.warn(`[PlatformManager] 系统错误 -86 通常与此相关`);
-              } else {
-                console.log(`[PlatformManager] ✅ 文件已签名`);
-              }
-            } catch (codesignCheckError) {
-              console.log(`[PlatformManager] 无法检查代码签名:`, codesignCheckError.message);
-            }
-            
-          } catch (macCheckError) {
-            console.log(`[PlatformManager] macOS 安全检查失败:`, macCheckError.message);
-          }
-        }
-        
         return binaryPath;
+      }
+    }
+    
+    // 如果都找不到，列出实际的目录结构以便调试
+    const debugPaths = [
+      process.resourcesPath,
+      path.join(process.resourcesPath, 'bin'),
+      this.projectRoot,
+      path.join(this.projectRoot, 'bin')
+    ];
+    
+    console.log(`[PlatformManager] 调试信息 - 检查以下目录结构:`);
+    for (const debugPath of debugPaths) {
+      if (fs.existsSync(debugPath)) {
+        try {
+          const contents = fs.readdirSync(debugPath);
+          console.log(`[PlatformManager] ${debugPath}: [${contents.join(', ')}]`);
+        } catch (err) {
+          console.log(`[PlatformManager] ${debugPath}: 无法读取目录`);
+        }
+      } else {
+        console.log(`[PlatformManager] ${debugPath}: 不存在`);
       }
     }
     
@@ -166,56 +174,9 @@ class PlatformManager {
 
     try {
       if (fs.existsSync(binaryPath)) {
-        console.log(`[PlatformManager] 文件存在，检查当前权限`);
+        console.log(`[PlatformManager] 文件存在，设置权限`);
         
-        // 检查当前权限
-        const stats = fs.statSync(binaryPath);
-        const currentMode = stats.mode.toString(8);
-        console.log(`[PlatformManager] 当前权限: ${currentMode}`);
-        
-        // 在 macOS 上，尝试移除扩展属性以解决 Gatekeeper 问题
-        if (process.platform === 'darwin') {
-          console.log(`[PlatformManager] macOS 系统，尝试移除扩展属性`);
-          try {
-            const { execSync } = require('child_process');
-            
-            // 先检查是否有隔离属性
-            let hasQuarantine = false;
-            try {
-              const xattrCheck = execSync(`xattr -l "${binaryPath}" 2>/dev/null || echo "no-attributes"`);
-              hasQuarantine = xattrCheck.toString().includes('com.apple.quarantine');
-              if (hasQuarantine) {
-                console.log(`[PlatformManager] 发现隔离属性，尝试移除`);
-              }
-            } catch (checkError) {
-              console.log(`[PlatformManager] 检查扩展属性失败:`, checkError.message);
-            }
-            
-            // 移除隔离属性
-            if (hasQuarantine) {
-              execSync(`xattr -dr com.apple.quarantine "${binaryPath}" 2>/dev/null || true`);
-              console.log(`[PlatformManager] 成功移除隔离属性`);
-            }
-            
-            // 尝试执行一次二进制文件以触发系统识别
-            try {
-              console.log(`[PlatformManager] 尝试执行二进制文件以触发系统识别`);
-              if (binaryPath.includes('ffmpeg')) {
-                execSync(`"${binaryPath}" -version 2>/dev/null || true`, { timeout: 3000 });
-              } else if (binaryPath.includes('whisper-cli')) {
-                execSync(`"${binaryPath}" --help 2>/dev/null || true`, { timeout: 3000 });
-              }
-              console.log(`[PlatformManager] 执行成功，系统已识别二进制文件`);
-            } catch (execError) {
-              console.log(`[PlatformManager] 执行失败，可能需要用户手动允许:`, execError.message);
-            }
-            
-          } catch (xattrError) {
-            console.log(`[PlatformManager] 移除扩展属性失败（这是正常的）:`, xattrError.message);
-          }
-        }
-        
-        // 设置权限
+        // 设置标准权限
         console.log(`[PlatformManager] 设置权限为: ${platformConfig.execPermission}`);
         fs.chmodSync(binaryPath, platformConfig.execPermission);
         

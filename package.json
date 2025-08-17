@@ -87,7 +87,6 @@
       "renderer/",
       "tools/",
       "utils/",
-      "models/",
       "package.json",
       "!renderer/dist/*.map",
       "!**/.DS_Store",
@@ -100,6 +99,14 @@
         "filter": [
           "**/*",
           "!**/*.txt",
+          "!**/.DS_Store"
+        ]
+      },
+      {
+        "from": "models/",
+        "to": "models/",
+        "filter": [
+          "**/*",
           "!**/.DS_Store"
         ]
       }
@@ -115,7 +122,14 @@
       "prettier --write"
     ]
   },
-  "keywords": ["electron", "whisper", "subtitle", "video", "ai", "desktop-app"],
+  "keywords": [
+    "electron",
+    "whisper",
+    "subtitle",
+    "video",
+    "ai",
+    "desktop-app"
+  ],
   "author": "BigThieff",
   "license": "MIT",
   "description": "智能视频字幕提取工具 - 基于 OpenAI Whisper 和 FFmpeg 的跨平台桌面应用",
@@ -138,6 +152,7 @@
     "husky": "^9.1.4",
     "icon-gen": "^3.0.1",
     "lint-staged": "^15.2.8",
+    "mini-css-extract-plugin": "2.9.4",
     "prettier": "^3.3.3",
     "sharp": "^0.33.5",
     "style-loader": "^4.0.0",
@@ -146,6 +161,7 @@
   },
   "dependencies": {
     "antd": "^5.26.6",
+    "preact": "10.27.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   }
