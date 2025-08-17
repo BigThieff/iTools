@@ -152,5 +152,29 @@ iTools/
 - 在 macOS/Windows/Linux 各完成一次端到端测试；验证双语与顺序、重复检测、打包产物可运行。
 
 
+## Release 安装包适用平台
+在 Release 页面中提供的安装包适用于以下平台：
+
+- **macOS**：
+  - 如果您使用的是 Apple Silicon（M1/M2 等芯片）的 Mac，请下载：`iTools-1.0.0-arm64.dmg`
+  - 如果您使用的是 Intel 芯片的 Mac，请下载：`iTools-1.0.0.dmg`
+- **Windows**：
+  - 如果您的电脑是 64 位系统，请下载：`iTools-1.0.0-x64.exe`
+  - 如果您的电脑是 32 位系统，请下载：`iTools-1.0.0-ia32.exe`
+  - 如果您的电脑是 ARM 架构，请下载：`iTools-1.0.0-arm64.exe`
+  - 如果您不想安装，可以下载解压版（无需安装）：`iTools-1.0.0-win32-x64.zip` 等
+- **Linux（暂未提供）**：
+  - 如果您使用的是 64 位系统，请下载：`iTools-1.0.0-x64.AppImage`
+  - 如果您使用的是 ARM 架构，请下载：`iTools-1.0.0-arm64.AppImage`
+
+**注意**：
+- macOS 用户可能需要在“系统偏好设置 > 安全性与隐私”中允许运行。
+- Windows 用户请确保安装包未被防病毒软件误报。
+- Linux 用户需赋予 AppImage 文件可执行权限：
+  ```bash
+  chmod +x iTools-1.0.0-x64.AppImage
+  ```
+
+
 ## 许可证
 MIT（详见 `LICENSE`）。
